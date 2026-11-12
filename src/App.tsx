@@ -14,6 +14,9 @@ import Setup from './screens/Setup';
 import SettingsScreen from './screens/Settings';
 import Split from './screens/Split';
 import NewPeriod from './screens/NewPeriod';
+import RemindersDemo from './screens/RemindersDemo';
+import Coin from './components/Coin';
+import { checkIn, dueStage, markShown, snooze, turnOff, type ReminderState, type Stage, type Tone } from './reminders';
 
 function useToday() {
   const [today, setToday] = useState(todayISO());
@@ -29,7 +32,7 @@ function useToday() {
   return today;
 }
 
-interface Toast { id: number; text: string; undo?: Plan; celebrate?: boolean }
+interface Toast { id: number; text: string; undo?: Plan; celebrate?: boolean; coin?: boolean }
 
 export default function App() {
   const today = useToday();
@@ -53,6 +56,17 @@ export default function App() {
   const [toast, setToast] = useState<Toast | null>(null);
   const [potsKey, setPotsKey] = useState(0);
   const mainRef = useRef<HTMLElement>(null);
+  const [reminders, setRemindersState] = useState<ReminderState>(() => store.loadReminders());
+  const [pending, setPending] = useState<AppCtx['pendingReminder']>(null);
+  const [demoCheckedIn, setDemoCheckedIn] = useState(false);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 60_000);
+    const vis = () => setTick((n) => n + 1);
+    document.addEventListener('visibilitychange', vis);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); };
+  }, []);
+  useEffect(() => store.saveReminders(reminders), [reminders]);
 
   // Keep the sample's dates current when the day changes.
   useEffect(() => {
@@ -81,6 +95,35 @@ export default function App() {
     requestAnimationFrame(() => mainRef.current?.querySelector<HTMLElement>('h1')?.focus());
   }, []);
 
+  // Real reminders: only for your own plan, only when opted in. Shown once, on Today.
+  useEffect(() => {
+    if (kind !== 'personal' || pending) return;
+    const stage = dueStage(reminders, new Date());
+    if (!stage) return;
+    setRemindersState((r) => markShown(r, stage));
+    setPending({ stage, tone: reminders.tone, demo: false, opened: false });
+    setScreen((sc) => (['today', 'plan', 'goals', 'welcome'].includes(sc.name) ? { name: 'today' } : sc));
+  }, [kind, reminders, tick, pending]);
+
+  const isDemo = kind === 'sample';
+  const remindersOn = isDemo || reminders.enabled;
+  const checkedInToday = isDemo ? demoCheckedIn : reminders.lastCheckIn === today && reminders.enabled;
+
+  const registerCheckIn = useCallback(() => {
+    if (kind === 'sample') setDemoCheckedIn(true);
+    else if (reminders.enabled) setRemindersState((r) => checkIn(r, new Date()));
+    setPending(null);
+  }, [kind, reminders.enabled]);
+
+  const celebrate = useCallback(
+    (msg: string) => {
+      // Used after confirmed actions (plan confirmed, savings marked): also a check-in.
+      setToast({ id: Date.now(), text: msg, celebrate: settings.celebrations, coin: remindersOn && settings.celebrations });
+      registerCheckIn();
+    },
+    [settings.celebrations, remindersOn, registerCheckIn],
+  );
+
   const setPlan = useCallback(
     (fn: (p: Plan) => Plan) => {
       if (kind === 'sample') setSample((p) => (p ? fn(p) : p));
@@ -93,21 +136,20 @@ export default function App() {
     (fn: (p: Plan) => Plan, message?: string) => {
       const before = plan;
       setPlan(fn);
-      if (message) setToast({ id: Date.now(), text: message, undo: before ?? undefined });
+      if (message) {
+        // A confirmed money update counts as a check-in: the coin celebrates and the sequence resets.
+        setToast({ id: Date.now(), text: message, undo: before ?? undefined, coin: remindersOn && settings.celebrations });
+        registerCheckIn();
+      }
     },
-    [plan, setPlan],
+    [plan, setPlan, remindersOn, settings.celebrations, registerCheckIn],
   );
 
-  const celebrate = useCallback(
-    (msg: string) => {
-      setToast({ id: Date.now(), text: msg, celebrate: settings.celebrations });
-    },
-    [settings.celebrations],
-  );
+
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 7000);
+    const t = setTimeout(() => setToast(null), 6000);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -153,6 +195,32 @@ export default function App() {
           }
           setToast({ id: Date.now(), text: 'Your plan was cleared from this device.' });
         },
+        reminders,
+        setReminders: (fn) => setRemindersState(fn),
+        pendingReminder: isDemo ? (pending?.demo ? pending : null) : pending && !pending.demo ? pending : null,
+        openReminder: () => {
+          setPending((p) => (p ? { ...p, opened: true } : p));
+          go({ name: 'today' });
+        },
+        snoozeReminder: () => {
+          if (pending && !pending.demo) setRemindersState((r) => snooze(r, pending.stage, new Date()));
+          setPending(null);
+          setToast({ id: Date.now(), text: pending?.demo ? 'Snoozed. In your own plan this comes back tomorrow at your reminder time.' : `Snoozed until tomorrow at ${reminders.time}.` });
+        },
+        turnOffReminder: () => {
+          if (!pending?.demo) setRemindersState((r) => turnOff(r));
+          setPending(null);
+          setToast({ id: Date.now(), text: pending?.demo ? 'In your own plan this turns reminders off. You can turn them on again in Settings.' : 'Reminders are off. Turn them on again in Settings.' });
+        },
+        simulateReminder: (stage: Stage, tone: Tone) => {
+          setDemoCheckedIn(false);
+          setPending({ stage, tone, demo: true, opened: false });
+        },
+        checkedInToday,
+        checkInNow: () => {
+          registerCheckIn();
+          setToast({ id: Date.now(), text: settings.celebrations ? 'Checked in! The coin is thrilled. See you tomorrow.' : 'Checked in for today.', coin: settings.celebrations, celebrate: settings.celebrations });
+        },
       }
     : null;
 
@@ -188,7 +256,10 @@ export default function App() {
       {kind === 'sample' && (
         <div className="sample-banner" role="note">
           <span>This is a sample with made-up UK figures. Change anything you like.</span>
-          <button type="button" className="btn-small" onClick={ctx.resetSample}>Reset sample</button>
+          <div className="row-wrap tight">
+            <button type="button" className="btn-small" onClick={() => go({ name: 'remindersDemo' })}>Reminders</button>
+            <button type="button" className="btn-small" onClick={ctx.resetSample}>Reset sample</button>
+          </div>
         </div>
       )}
       <main id="main" ref={mainRef} tabIndex={-1}>
@@ -200,6 +271,7 @@ export default function App() {
         {screen.name === 'settings' && <SettingsScreen />}
         {screen.name === 'split' && <Split />}
         {screen.name === 'newPeriod' && <NewPeriod />}
+        {screen.name === 'remindersDemo' && <RemindersDemo />}
       </main>
       {tab && (
         <nav className="tabs" aria-label="Main">
@@ -214,7 +286,7 @@ export default function App() {
       <div className="toast-area" aria-live="polite">
         {toast && (
           <div className={`toast ${toast.celebrate ? 'celebrate' : ''}`} key={toast.id}>
-            {toast.celebrate && <span className="sparkle" aria-hidden="true">✦</span>}
+            {toast.coin ? <Coin mood="celebrate" label="The coin celebrates" size={56} /> : toast.celebrate && <span className="sparkle" aria-hidden="true">✦</span>}
             <span>{toast.text}</span>
             {toast.undo && (
               <button type="button" className="btn-small" onClick={() => { const u = toast.undo!; setPlan(() => u); setToast({ id: Date.now(), text: 'Undone.' }); }}>

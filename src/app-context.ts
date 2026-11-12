@@ -3,6 +3,7 @@ import type { Plan } from './types';
 import type { Summary } from './calc';
 import type { Settings } from './store';
 import type { ISODate } from './dates';
+import type { ReminderState, Stage, Tone } from './reminders';
 
 export type Screen =
   | { name: 'welcome' }
@@ -13,7 +14,8 @@ export type Screen =
   | { name: 'setup'; step?: string; editOnly?: boolean }
   | { name: 'settings' }
   | { name: 'split' }
-  | { name: 'newPeriod' };
+  | { name: 'newPeriod' }
+  | { name: 'remindersDemo' };
 
 export interface AppCtx {
   today: ISODate;
@@ -33,6 +35,16 @@ export interface AppCtx {
   openPersonal: () => void;
   resetSample: () => void;
   clearPersonal: () => void;
+  reminders: ReminderState;
+  setReminders: (fn: (r: ReminderState) => ReminderState) => void;
+  /** Reminder waiting on Today (real, or simulated in the sample). */
+  pendingReminder: { stage: Stage; tone: Tone; demo: boolean; opened: boolean } | null;
+  openReminder: () => void;
+  snoozeReminder: () => void;
+  turnOffReminder: () => void;
+  simulateReminder: (stage: Stage, tone: Tone) => void;
+  checkedInToday: boolean;
+  checkInNow: () => void;
 }
 
 export const Ctx = createContext<AppCtx | null>(null);

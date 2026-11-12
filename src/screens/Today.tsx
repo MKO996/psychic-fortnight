@@ -5,15 +5,19 @@ import { daysBetween, longDate, relativeDay, shortDate } from '../dates';
 import Pots from './Pots';
 import { Progress } from '../ui';
 import type { View } from '../calc';
+import ReminderCard from '../components/ReminderCard';
+import Coin from '../components/Coin';
+import { reminderCopy } from '../reminders';
 
 export default function Today() {
-  const { summary: s, go, today, kind } = useApp();
+  const { summary: s, go, today, kind, pendingReminder: rem, openReminder, snoozeReminder, turnOffReminder, reminders } = useApp();
   const endWord = s.endKind === 'review' ? 'your review date' : 'payday';
   const groceries = s.required.find((r) => r.kind === 'essential' && r.id === 'groceries');
 
   return (
     <div className="screen today">
       <h1 tabIndex={-1} className="visually-hidden">Today</h1>
+      {rem && !rem.opened && <ReminderCard stage={rem.stage} tone={rem.tone} demo={rem.demo} onCheck={openReminder} onSnooze={snoozeReminder} onTurnOff={turnOffReminder} />}
       <section className="hero" aria-labelledby="safe-h">
         <h2 id="safe-h" className="hero-label">Safe to spend today</h2>
         {s.status === 'incomplete' ? (
@@ -60,6 +64,8 @@ export default function Today() {
         </button>
         <button type="button" className="btn secondary xl" onClick={() => go({ name: 'plan' })}>View plan</button>
       </div>
+
+      {(kind === 'sample' || reminders.enabled) && <CheckIn />}
 
       {s.status === 'incomplete' && (
         <section className="card attention" aria-labelledby="missing-h">
@@ -121,6 +127,29 @@ function Views({ views }: { views: View[] }) {
           {v.wholePeriod && v.key !== 'today' && <> That’s all of it until payday.</>}
         </span>
       </p>
+    </section>
+  );
+}
+
+function CheckIn() {
+  const { checkedInToday, checkInNow, pendingReminder: rem } = useApp();
+  const waiting = rem && rem.opened ? reminderCopy(rem.stage, rem.tone) : null;
+  return (
+    <section className="card checkin" aria-labelledby="checkin-h" data-testid="checkin">
+      <div className="reminder-row">
+        {checkedInToday ? (
+          <Coin mood="celebrate" label="The coin is happy" size={72} />
+        ) : waiting ? (
+          <Coin mood={waiting.mood} label={`${waiting.moodLabel}, still waiting`} size={72} />
+        ) : (
+          <Coin mood="idle" label="The coin is waiting" size={72} />
+        )}
+        <div>
+          <h2 id="checkin-h">{checkedInToday ? 'Checked in today' : 'Daily money check-in'}</h2>
+          <p className="hint">{checkedInToday ? 'Nice. The coin can relax until tomorrow.' : waiting ? 'You’re here. Look at your numbers above, then tell the coin.' : 'Had a look at your numbers? Tell the coin.'}</p>
+        </div>
+      </div>
+      {!checkedInToday && <button type="button" className="btn primary" onClick={checkInNow}>Checked today</button>}
     </section>
   );
 }

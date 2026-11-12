@@ -276,3 +276,47 @@ html[data-motion='reduce'] *, html[data-motion='reduce'] *::before, html[data-mo
 }
 .topbar .mode-chip { margin-right: auto; }
 .mode-chip { flex: 0 1 auto; }
+
+/* Coin mascot */
+.coin { display: inline-flex; flex: none; }
+.coin svg { overflow: visible; }
+.coin-rim { fill: #d9a21b; stroke: #6b4b05; stroke-width: 4; }
+.coin-face { fill: #f4c84a; stroke: #b9860f; stroke-width: 2; }
+.coin-shine { fill: none; stroke: #fff3c4; stroke-width: 4; stroke-linecap: round; }
+.coin-eye { fill: #2a1d02; }
+.coin-line { fill: none; stroke: #2a1d02; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.coin-mouth { fill: #2a1d02; }
+.coin-arm { fill: none; stroke: #6b4b05; stroke-width: 7; stroke-linecap: round; }
+.coin-puff { fill: #e8e3d8; stroke: #9a9488; stroke-width: 1.5; }
+.coin-sparks path { fill: #e0a400; }
+.coin-body { transform-origin: 60px 100px; }
+.wave-arm { transform-origin: 92px 62px; animation: coin-wave 900ms ease-in-out infinite alternate; }
+.coin-wave .coin-body { animation: coin-bob 1.2s ease-in-out infinite alternate; }
+.coin-offended .coin-body { animation: coin-huff 2.4s ease-in-out infinite; }
+.coin-sigh .coin-body { animation: coin-sigh 3s ease-in-out infinite; }
+.coin-sigh .coin-puff { animation: coin-puff 3s ease-in-out infinite; }
+.coin-celebrate .coin-body { animation: coin-jump 600ms cubic-bezier(.3,1.6,.5,1) 3; }
+.coin-celebrate .coin-sparks { transform-origin: 60px 60px; animation: coin-spark 900ms ease-out both; }
+@keyframes coin-wave { from { transform: rotate(-18deg); } to { transform: rotate(22deg); } }
+@keyframes coin-bob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+@keyframes coin-huff { 0%, 70%, 100% { transform: rotate(0); } 75% { transform: rotate(-6deg); } 85% { transform: rotate(6deg); } }
+@keyframes coin-sigh { 0%, 100% { transform: scaleY(1) translateY(0); } 50% { transform: scaleY(0.92) translateY(6px); } }
+@keyframes coin-puff { 0%, 40% { opacity: 0; transform: translateX(0); } 60% { opacity: 1; } 100% { opacity: 0; transform: translateX(10px); } }
+@keyframes coin-jump { 0% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-14px) rotate(-8deg); } 100% { transform: translateY(0) rotate(0); } }
+@keyframes coin-spark { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
+
+.reminder { border-width: 3px; border-color: #c99a1a; background: #fffaf0; }
+.reminder-row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.reminder-row > div { flex: 1 1 10rem; }
+.reminder-day { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.reminder h2, .reminder h3 { font-size: 1.3rem; margin: 0.1rem 0 0.25rem; }
+.reminder-body { font-size: 1.1rem; margin-bottom: 0.75rem; }
+.checkin .btn { width: 100%; }
+.email { background: #fff; padding: 0; overflow: hidden; }
+.email-head { margin: 0; padding: 0.75rem 1rem; background: #f1ece2; border-bottom: 2px solid var(--line); }
+.email-head div { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.email-head dt { font-weight: 700; color: var(--ink-2); min-width: 4.5rem; }
+.email-head dd { margin: 0; font-weight: 700; }
+.email-body { padding: 1rem; display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+.row-wrap.tight { margin: 0; gap: 0.4rem; }
+.toast .coin { margin: -0.5rem 0; }

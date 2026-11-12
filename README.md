@@ -27,8 +27,8 @@ Everything is bundled. After the page loads, planning and typing need no interne
 ## Tests
 
 ```bash
-npm test             # 35 unit tests: calculation, parser, talk-to-plan
-npm run build && npm run e2e   # 62 browser checks in Chromium at 320–360px, all external requests blocked
+npm test             # 43 unit tests: calculation, parser, talk-to-plan
+npm run build && npm run e2e   # 89 browser checks in Chromium at 320–360px, all external requests blocked
 ```
 
 The e2e script saves screenshots to `screenshots/`.
@@ -71,9 +71,20 @@ Logging a planned payment (bill paid, money moved to a pot) lowers cash and that
 - The in-app **Speak** button appears only if the browser confirms **on-device** speech recognition (`SpeechRecognition.available({ processLocally: true })`). LEFT doesn't offer recognition that might send audio to a server, and it never stores audio.
 - What was verified: the typed path, the examples, and the whole mic path (button → recognised words → *Check what I heard*) using a **simulated** on-device engine in Chromium. Real speech recognition was **not** verified: the headless Chromium here has no speech model, and its `available()` check crashes the tab. LEFT guards against this. It records that a check started, and if a check ever crashes the tab, it never runs it again and falls back to typing.
 
+## Money check-in reminders (coin mascot)
+
+LEFT's coin reminds you if you haven't checked in. The reminders come on day 1, day 3 and day 7 after your last check-in, and LEFT shows each one once. After day 7 they stop until you check in again. Tapping **Checked today**, or confirming any money update, makes the coin celebrate and starts the sequence again.
+
+- **Opt in:** Settings → Money check-in reminders. Choose a reminder time and pick **Gentle** or **Cheeky**. Every reminder has **Snooze** (it comes back tomorrow at your reminder time) and **Turn off**.
+- **Each reminder opens Today.** The jokes are only about the coin being left waiting, and reminders never include your figures.
+- **Limits:** reminders appear when you open LEFT. Real phone notifications or emails while the app is closed would need a server, so they're a possible future opt-in. They are not built yet.
+- **Demo:** Try the demo → **Reminders** (yellow banner) → choose Gentle or Cheeky → Day 1, 3 or 7. This shows the in-app reminder and a mock email with its subject, message and button. It works fully offline and sends nothing.
+
+Logic and copy: `src/reminders.ts` (+ `reminders.test.ts`). Mascot: `src/components/Coin.tsx`.
+
 ## Accessibility notes
 
-Large text toggle in the header, a Reduce motion setting (it follows the system setting by default), a Celebrations toggle, 48 px or larger controls, visible focus, labels on every amount and control, and no sideways scrolling at 320 px with Large text or 200% text.
+Coin moods are also described in text and stay still under Reduce motion. Large text toggle in the header, a Reduce motion setting (it follows the system setting by default), a Celebrations toggle, 48 px or larger controls, visible focus, labels on every amount and control, and no sideways scrolling at 320 px with Large text or 200% text.
 
 ## Structure
 

@@ -1,6 +1,7 @@
 import type { Plan } from './types';
+import { defaultReminders, type ReminderState } from './reminders';
 
-const KEYS = { sample: 'left.sample.v1', personal: 'left.personal.v1', settings: 'left.settings.v1', active: 'left.active.v1' } as const;
+const KEYS = { sample: 'left.sample.v1', personal: 'left.personal.v1', settings: 'left.settings.v1', active: 'left.active.v1', reminders: 'left.reminders.v1' } as const;
 
 export interface Settings {
   largeText: boolean;
@@ -39,4 +40,6 @@ export const store = {
     return { largeText: false, reduceMotion: prefersReduced, celebrations: true, ...(read<Partial<Settings>>(KEYS.settings) ?? {}) };
   },
   saveSettings: (s: Settings) => write(KEYS.settings, s),
+  loadReminders: (): ReminderState => ({ ...defaultReminders, ...(read<Partial<ReminderState>>(KEYS.reminders) ?? {}) }),
+  saveReminders: (r: ReminderState) => write(KEYS.reminders, r),
 };

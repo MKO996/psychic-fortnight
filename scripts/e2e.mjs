@@ -341,6 +341,91 @@ try {
     check('no recordings in storage', !/audio|record/i.test(stored), stored);
     await p2.context().close();
   }
+
+  // 13. Reminders demo: Try the demo → Reminders, all three days, in-app + mock email, offline
+  {
+    const page = await freshSample();
+    await page.getByRole('button', { name: 'Reminders', exact: true }).click();
+    await page.getByText('Cheeky', { exact: true }).click();
+    const expect = {
+      1: ['Ten seconds for your money?', 'I’m waving'],
+      3: ['Your money pots held a meeting.', 'I was the only one who showed up.'],
+      7: ['Fine. I’ll stop being dramatic.', 'Your plan will be here when you’re ready.'],
+    };
+    for (const d of [1, 3, 7]) {
+      await page.getByRole('button', { name: `Day ${d}`, exact: true }).click();
+      const inapp = await page.getByTestId('demo-inapp').innerText();
+      const email = await page.getByTestId('demo-email').innerText();
+      check(`demo day ${d}: in-app reminder copy`, inapp.includes(expect[d][0]) && inapp.includes(expect[d][1]));
+      check(`demo day ${d}: mock email has subject, message, button`, (await page.getByTestId('email-subject').innerText()).length > 0 && email.includes('Check my money'));
+      check(`demo day ${d}: no figures in reminder or email`, !/£\d/.test(inapp + email));
+      if (d === 3) await page.screenshot({ path: `${SHOTS}/10-reminder-demo-day3-360.png`, fullPage: true });
+    }
+    check('demo: coin mood is sigh on day 7', (await page.getByTestId('demo-inapp').locator('.coin').getAttribute('data-mood')) === 'sigh');
+    await page.getByTestId('demo-inapp').getByRole('button', { name: 'Check my money' }).click();
+    check('reminder opens Today', await page.getByTestId('safe-today').isVisible());
+    check('Today shows the waiting coin and Checked today', await page.getByTestId('checkin').getByRole('button', { name: 'Checked today' }).isVisible());
+    await page.getByRole('button', { name: 'Checked today' }).click();
+    check('Checked today: coin celebrates', (await page.locator('.toast .coin').getAttribute('data-mood')) === 'celebrate');
+    check('Checked today: card updates', await page.getByRole('heading', { name: 'Checked in today' }).isVisible());
+    await page.screenshot({ path: `${SHOTS}/11-checked-in-360.png`, fullPage: true });
+    // A confirmed money update also counts as a check-in
+    await page.getByRole('button', { name: 'Reminders', exact: true }).click();
+    await page.getByRole('button', { name: 'Day 3', exact: true }).click();
+    await page.getByTestId('demo-email').getByRole('button', { name: 'Check my money' }).click();
+    await talk(page, 'I spent £25 on groceries');
+    await page.getByRole('button', { name: 'Apply' }).click();
+    check('money update: coin celebrates and resets', (await page.locator('.toast .coin').getAttribute('data-mood')) === 'celebrate' && await page.getByRole('heading', { name: 'Checked in today' }).isVisible());
+    check('reminders demo: no external requests', external.length === 0, external.join(', '));
+    await page.context().close();
+  }
+
+  // 14. Real reminders on your own plan: opt-in, once per stage, snooze, turn off, reduced motion
+  {
+    const page = await freshSample({ reducedMotion: 'reduce' });
+    const today = new Date();
+    const ago = (n) => { const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    const setup = async (state) => page.evaluate(([st]) => {
+      const p = JSON.parse(localStorage.getItem('left.sample.v1'));
+      p.kind = 'personal';
+      localStorage.setItem('left.personal.v1', JSON.stringify(p));
+      localStorage.setItem('left.active.v1', JSON.stringify('personal'));
+      localStorage.setItem('left.reminders.v1', JSON.stringify(st));
+    }, [state]);
+    await setup({ enabled: false, time: '00:00', tone: 'cheeky', lastCheckIn: ago(3), shown: [], snoozedUntil: null });
+    await page.reload();
+    await page.getByTestId('safe-today').waitFor();
+    check('no reminder unless opted in', (await page.getByTestId('reminder-card').count()) === 0);
+    await setup({ enabled: true, time: '00:00', tone: 'cheeky', lastCheckIn: ago(3), shown: [1], snoozedUntil: null });
+    await page.reload();
+    await page.getByTestId('reminder-card').waitFor();
+    check('own plan: day 3 reminder on Today', (await page.getByTestId('reminder-card').innerText()).includes('I was the only one who showed up.'));
+    check('reduced motion: coin still, mood in text', (await page.locator('.reminder .coin-body').first().evaluate((el) => getComputedStyle(el).animationName)) === 'none' && (await page.getByRole('img', { name: /offended/ }).count()) > 0);
+    await page.reload();
+    await page.getByTestId('safe-today').waitFor();
+    check('each stage shows once', (await page.getByTestId('reminder-card').count()) === 0);
+    await setup({ enabled: true, time: '00:00', tone: 'gentle', lastCheckIn: ago(8), shown: [1, 3], snoozedUntil: null });
+    await page.reload();
+    await page.getByTestId('reminder-card').waitFor();
+    check('gentle day 7 copy', (await page.getByTestId('reminder-card').innerText()).includes('I’ll stop reminding you for now.'));
+    await page.getByRole('button', { name: 'Snooze' }).click();
+    check('snooze hides it', (await page.getByTestId('reminder-card').count()) === 0);
+    const snoozed = await page.evaluate(() => JSON.parse(localStorage.getItem('left.reminders.v1')));
+    check('snooze brings day 7 back tomorrow', !!snoozed.snoozedUntil && !snoozed.shown.includes(7));
+    await setup({ enabled: true, time: '00:00', tone: 'cheeky', lastCheckIn: ago(1), shown: [], snoozedUntil: null });
+    await page.reload();
+    await page.getByTestId('reminder-card').waitFor();
+    await page.getByRole('button', { name: 'Turn off' }).click();
+    check('turn off', (await page.evaluate(() => JSON.parse(localStorage.getItem('left.reminders.v1')).enabled)) === false);
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await page.getByRole('switch', { name: /Remind me to check my money/ }).click();
+    check('opt in shows time and style', await page.getByLabel('Reminder time').isVisible() && await page.getByText('Gentle', { exact: true }).isVisible());
+    await page.getByLabel('Reminder time').fill('07:30');
+    check('reminder time saved', (await page.evaluate(() => JSON.parse(localStorage.getItem('left.reminders.v1')).time)) === '07:30');
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    check('settings at 360px: no sideways scroll', overflow <= 0, String(overflow));
+    await page.context().close();
+  }
 } catch (e) {
   check('script error', false, e.message.split('\n')[0]);
 } finally {
