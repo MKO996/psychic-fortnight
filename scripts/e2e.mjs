@@ -209,6 +209,8 @@ try {
     await page.getByLabel('Amount', { exact: true }).fill('200');
     await page.getByLabel('Due date').fill(localIso(5)); // due ON payday
     await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: '£40', exact: true }).click();
+    check('groceries quick amount chip', await page.waitForFunction(() => document.querySelector('input[inputmode=decimal]')?.value === '40', null, { timeout: 3000 }).then(() => true, () => false));
     await page.getByLabel('Groceries').fill('50');
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('button', { name: 'None' }).click();
@@ -216,6 +218,9 @@ try {
     await page.getByRole('button', { name: '+ Add a goal' }).click();
     await page.getByRole('button', { name: 'Emergency savings' }).click();
     await page.getByLabel('Put in from this pay').fill('50');
+    await page.getByRole('button', { name: 'Continue' }).click();
+    check('about step: tap a focus', await page.getByRole('heading', { name: 'What matters most to you right now?' }).isVisible());
+    await page.getByRole('radio', { name: /Saving more/ }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
     check('check what I understood', await page.getByRole('heading', { name: 'Check what I understood' }).isVisible());
     await page.screenshot({ path: `${SHOTS}/07-setup-check-360.png`, fullPage: true });
@@ -244,7 +249,7 @@ try {
     await page.getByRole('button', { name: /LEFT home/ }).click();
     await page.getByRole('button', { name: /Open my plan/ }).click();
     // unfinished plan resumes setup; jump to Today via a confirmed-less route
-    const onSetup = await page.getByText(/Step \d+ of 10/).isVisible();
+    const onSetup = await page.getByText(/Step \d+ of \d+/).isVisible();
     check('unfinished plan resumes where it stopped', onSetup);
     await page.context().close();
   }
@@ -426,8 +431,68 @@ try {
     check('settings at 360px: no sideways scroll', overflow <= 0, String(overflow));
     await page.context().close();
   }
+
+  // 15. Today: insights button, summary ring, upcoming payments, quick add
+  {
+    const page = await freshSample();
+    check('summary ring: £70 left', (await page.getByRole('img', { name: /£70 left until payday/ }).count()) === 1);
+    check('summary strip: next is rent', (await page.locator('.sum-strip').innerText()).includes('Rent £220'));
+    const up = await page.locator('.up-list').innerText();
+    check('upcoming: rent, phone, card, wage in date order', /Rent[\s\S]*Phone bill[\s\S]*Credit card[\s\S]*Weekly wage/.test(up));
+    await page.screenshot({ path: `${SHOTS}/12-today-new-360.png`, fullPage: true });
+    await page.getByRole('button', { name: 'Mark Phone bill paid, £30' }).click();
+    check('upcoming Paid: phone gone, still £10.00', !(await page.locator('.up-list').innerText()).includes('Phone bill') && (await text(page, '[data-testid=safe-today]')) === '£10.00');
+    await page.locator('.quick').getByRole('button', { name: /Groceries/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: '£5', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Add £5' }).click();
+    check('quick add £5 groceries: £75 left, still £10.00', (await text(page, '[data-testid=groceries-left]')) === '£75' && (await text(page, '[data-testid=safe-today]')) === '£10.00');
+    check('quick add shows profile choices', await page.locator('.quick').getByRole('button', { name: /Takeaway/ }).isVisible());
+    await page.locator('.quick').getByRole('button', { name: /Takeaway/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: '£20', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Add £20' }).click();
+    check('takeaway £20 from spending: £50 left', (await text(page, '[data-testid=left-total]')) === '£50');
+
+    // Insights
+    await page.getByRole('button', { name: /Get your insights/ }).click();
+    check('insights: week headline', /you spent £[\d.,]+ in the last 7 days/.test(await text(page, '[data-testid=insight-headline]')));
+    await page.getByRole('button', { name: 'This month', exact: true }).click();
+    await page.getByRole('button', { name: /Show all/ }).click();
+    check('insights month: groceries worth changing', (await page.getByTestId('insight-groceries').innerText()).includes('Groceries usually cost more than your plan'));
+    check('insights month: takeaway pattern', (await page.getByTestId('insight-repeat').innerText()).includes('Takeaway'));
+    check('insights: grouped Keep / Change', await page.getByRole('heading', { name: 'Keep doing' }).isVisible() && await page.getByRole('heading', { name: 'Worth changing' }).isVisible());
+    await page.screenshot({ path: `${SHOTS}/13-insights-month-360.png`, fullPage: true });
+    await page.getByTestId('insight-groceries').getByRole('button', { name: 'Change groceries' }).click();
+    check('insight action opens the right edit', await page.getByRole('heading', { name: /groceries before payday/ }).isVisible());
+    await page.getByRole('button', { name: '‹ Back' }).click();
+    await page.getByRole('navigation').getByRole('button', { name: 'Today' }).click();
+    await page.getByRole('button', { name: /Get your insights/ }).click();
+    await page.getByRole('button', { name: 'Today', exact: true }).click();
+    check('insights today: over the daily guide after a takeaway', await page.getByTestId('insight-today-pace').isVisible());
+    // About you changes the order
+    await page.getByRole('button', { name: 'About you' }).click();
+    await page.getByRole('radio', { name: /Clearing debt/ }).click();
+    await page.getByRole('radio', { name: /All the detail/ }).click();
+    await page.getByRole('button', { name: 'Coffee', exact: true }).click();
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    const ov1 = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    check('about you at 200% text: no sideways scroll', ov1 <= 0, String(ov1));
+    await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'This month', exact: true }).click();
+    const firstTopic = await page.locator('.insight h3').first().innerText();
+    check('focus on debt puts debt first in its group', (await page.getByTestId('insight-debt-debt-card').count()) === 1 && (await page.locator('.insight-group.keep .insight h3').first().innerText()).includes('Credit card'), firstTopic);
+    check('detailed: why shown', await page.getByTestId('insight-debt-debt-card').locator('details[open]').count() === 1);
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    const ov2 = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    check('insights at 200% text: no sideways scroll', ov2 <= 0, String(ov2));
+    await page.getByRole('button', { name: '‹ Back' }).click();
+    const ov3 = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    check('new Today at 200% text: no sideways scroll', ov3 <= 0, String(ov3));
+    check('insights: no external requests', external.length === 0);
+    await page.context().close();
+  }
 } catch (e) {
-  check('script error', false, e.message.split('\n')[0]);
+  check('script error', false, e.message.split('\n').slice(0, 3).join(' | '));
 } finally {
   await browser.close();
   server.kill();

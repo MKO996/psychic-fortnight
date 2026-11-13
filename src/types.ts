@@ -93,4 +93,19 @@ export interface Plan {
   sections: Record<SectionKey, SectionState>;
   entries: Entry[];
   confirmed: boolean;
+  /** Logged entries from earlier pay periods, kept for insights (about 4 months). */
+  history?: Entry[];
+  profile?: Profile;
+}
+
+export type Focus = 'runningOut' | 'bills' | 'debt' | 'saving' | 'whereItGoes';
+
+/** What LEFT knows about the person, all chosen by tapping. Used to personalise insights. */
+export interface Profile {
+  name: string;
+  focus: Focus | null;
+  household: 'alone' | 'partner' | 'children' | 'sharing' | null;
+  /** Things they often spend on: become one-tap choices in Quick add. */
+  spendsOn: string[];
+  detail: 'simple' | 'detailed';
 }

@@ -19,6 +19,11 @@ export default function SettingsScreen() {
         <Toggle label="Reduce motion" hint="Pots and bars appear without moving." checked={settings.reduceMotion} onChange={(b) => setSettings({ ...settings, reduceMotion: b })} />
         <Toggle label="Celebrations" hint="A short message when you pay a bill or save." checked={settings.celebrations} onChange={(b) => setSettings({ ...settings, celebrations: b })} />
       </section>
+      <section className="card">
+        <h2>About you</h2>
+        <p className="hint">What matters most, who you live with and what you often spend on. Used to order your insights and fill Quick add.</p>
+        <button type="button" className="btn secondary" onClick={() => go({ name: 'about', back: 'settings' })}>Edit about you</button>
+      </section>
       <section className="card" aria-labelledby="rem-h">
         <h2 id="rem-h">Money check-in reminders</h2>
         <p className="hint">If you haven’t checked in, the LEFT coin reminds you on day 1, 3 and 7, then stops until your next check-in. Reminders appear when you open LEFT. Your figures never appear in a reminder.</p>

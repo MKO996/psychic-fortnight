@@ -15,7 +15,9 @@ export type Screen =
   | { name: 'settings' }
   | { name: 'split' }
   | { name: 'newPeriod' }
-  | { name: 'remindersDemo' };
+  | { name: 'remindersDemo' }
+  | { name: 'insights' }
+  | { name: 'about'; back?: 'insights' | 'settings' };
 
 export interface AppCtx {
   today: ISODate;

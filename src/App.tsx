@@ -15,6 +15,8 @@ import SettingsScreen from './screens/Settings';
 import Split from './screens/Split';
 import NewPeriod from './screens/NewPeriod';
 import RemindersDemo from './screens/RemindersDemo';
+import Insights from './screens/Insights';
+import About from './screens/About';
 import Coin from './components/Coin';
 import { checkIn, dueStage, markShown, snooze, turnOff, type ReminderState, type Stage, type Tone } from './reminders';
 
@@ -272,6 +274,8 @@ export default function App() {
         {screen.name === 'split' && <Split />}
         {screen.name === 'newPeriod' && <NewPeriod />}
         {screen.name === 'remindersDemo' && <RemindersDemo />}
+        {screen.name === 'insights' && <Insights />}
+        {screen.name === 'about' && <About back={screen.back} />}
       </main>
       {tab && (
         <nav className="tabs" aria-label="Main">

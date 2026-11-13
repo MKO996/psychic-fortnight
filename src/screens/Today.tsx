@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { useApp } from '../app-context';
 import { money } from '../money';
-import { daysBetween, longDate, relativeDay, shortDate } from '../dates';
+import { shortDate } from '../dates';
+import Summary from '../components/Summary';
+import Upcoming from '../components/Upcoming';
+import QuickAdd from '../components/QuickAdd';
 import Pots from './Pots';
-import { Progress } from '../ui';
 import type { View } from '../calc';
 import ReminderCard from '../components/ReminderCard';
 import Coin from '../components/Coin';
 import { reminderCopy } from '../reminders';
 
 export default function Today() {
-  const { summary: s, go, today, kind, pendingReminder: rem, openReminder, snoozeReminder, turnOffReminder, reminders } = useApp();
+  const { summary: s, go, kind, pendingReminder: rem, openReminder, snoozeReminder, turnOffReminder, reminders } = useApp();
   const endWord = s.endKind === 'review' ? 'your review date' : 'payday';
-  const groceries = s.required.find((r) => r.kind === 'essential' && r.id === 'groceries');
 
   return (
     <div className="screen today">
@@ -44,18 +45,6 @@ export default function Today() {
             )}
           </>
         )}
-        {s.end && s.status !== 'incomplete' && (
-          <dl className="hero-sub">
-            <div>
-              <dt>Left until {endWord}</dt>
-              <dd className="amount" data-testid="left-total">{money(s.left)}</dd>
-            </div>
-            <div>
-              <dt>{s.endKind === 'review' ? 'Review date' : 'Next payday'}</dt>
-              <dd><span aria-label={longDate(s.end)}>{shortDate(s.end)}</span> <small>({relativeDay(s.end, today)})</small></dd>
-            </div>
-          </dl>
-        )}
       </section>
 
       <div className="actions-main">
@@ -64,6 +53,17 @@ export default function Today() {
         </button>
         <button type="button" className="btn secondary xl" onClick={() => go({ name: 'plan' })}>View plan</button>
       </div>
+
+      {s.status !== 'incomplete' && (
+        <button type="button" className="insights-btn" onClick={() => go({ name: 'insights' })}>
+          <span className="insights-spark" aria-hidden="true">✦</span>
+          <span className="insights-text">Get your insights<small>Day, week or month: what to keep and what to change</small></span>
+          <span className="insights-arrow" aria-hidden="true">→</span>
+        </button>
+      )}
+      {s.status !== 'incomplete' && <Summary />}
+      {s.status !== 'incomplete' && <Upcoming />}
+      {s.status !== 'incomplete' && <QuickAdd />}
 
       {(kind === 'sample' || reminders.enabled) && <CheckIn />}
 
@@ -74,28 +74,6 @@ export default function Today() {
             {s.missing.map((m) => <li key={m}>{m}</li>)}
           </ul>
           <button type="button" className="btn primary" onClick={() => go({ name: 'setup' })}>Finish my plan</button>
-        </section>
-      )}
-
-      {groceries && (
-        <section className="card groceries" aria-labelledby="gro-h">
-          <div className="row-between">
-            <h2 id="gro-h">Groceries left</h2>
-            <p className="big-figure amount" data-testid="groceries-left">{money(groceries.reserved)}</p>
-          </div>
-          <Progress value={groceries.reserved} max={groceries.full} label={`Groceries left: ${money(groceries.reserved)} of ${money(groceries.full)}`} />
-          <p className="hint">{money(groceries.done)} spent of {money(groceries.full)} this pay.{groceries.done > groceries.full && ` You’ve gone ${money(groceries.done - groceries.full)} over, which comes out of your spending money.`}</p>
-        </section>
-      )}
-
-      {s.nearestDue && s.status !== 'incomplete' && (
-        <section className="card next-step" aria-labelledby="next-h">
-          <h2 id="next-h">Next step</h2>
-          <p>
-            Check your {s.nearestDue.name.toLowerCase()}: <strong className="amount">{money(s.nearestDue.reserved)}</strong>{' '}
-            {s.nearestDue.dueDate ? (daysBetween(today, s.nearestDue.dueDate) < 0 ? `was due ${shortDate(s.nearestDue.dueDate)}.` : `due ${shortDate(s.nearestDue.dueDate)} (${relativeDay(s.nearestDue.dueDate, today)}).`) : 'due date not set.'}
-          </p>
-          <button type="button" className="btn secondary" onClick={() => go({ name: 'plan' })}>Go to bills</button>
         </section>
       )}
 

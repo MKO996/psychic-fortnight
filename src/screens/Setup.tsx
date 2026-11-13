@@ -6,8 +6,11 @@ import { nextDateFor, uid } from '../plan';
 import { Choice, DateField, MoneyField, TextField } from '../ui';
 import type { Bill, Debt, Goal, Income, Known, Plan, SectionKey } from '../types';
 import { billDueThisPeriod, missingItems, periodEnd, softGaps } from '../calc';
+import { ChipGroup, FOCUS_OPTIONS } from './About';
+import { defaultProfile } from '../plan';
+import { pounds } from '../money';
 
-const STEPS = ['cash', 'frequency', 'payday', 'income', 'bills', 'groceries', 'transport', 'debts', 'goals', 'check'] as const;
+const STEPS = ['cash', 'frequency', 'payday', 'income', 'bills', 'groceries', 'transport', 'debts', 'goals', 'about', 'check'] as const;
 type Step = (typeof STEPS)[number];
 
 export default function Setup({ startStep, editOnly }: { startStep?: string; editOnly?: boolean }) {
@@ -117,6 +120,11 @@ export default function Setup({ startStep, editOnly }: { startStep?: string; edi
         <>
           <Q title={step === 'groceries' ? 'How much do you need for groceries before payday?' : 'How much do you need for transport before payday?'} hint={step === 'groceries' ? 'Food and everyday shopping.' : 'Bus, train, fuel or taxis.'} />
           <MoneyField big label={step === 'groceries' ? 'Groceries' : 'Transport'} value={e.budget} onChange={(a) => setBudget(a)} autoFocus />
+          <div className="amount-chips" role="group" aria-label="Quick amounts">
+            {(step === 'groceries' ? [40, 60, 80, 100, 150] : [10, 20, 30, 50]).map((n) => (
+              <button key={n} type="button" className="chip big" aria-pressed={e.budget === pounds(n)} onClick={() => setBudget(pounds(n))}>£{n}</button>
+            ))}
+          </div>
           {nav(
             <div className="row-wrap">
               {step === 'transport' && <button type="button" className="btn tertiary" onClick={() => { setBudget(0); next(); }}>None</button>}
@@ -159,6 +167,17 @@ export default function Setup({ startStep, editOnly }: { startStep?: string; edi
         </>
       );
       break;
+    case 'about': {
+      const prof = { ...defaultProfile, ...(plan.profile ?? {}) };
+      body = (
+        <>
+          <Q title="What matters most to you right now?" hint="LEFT puts insights about this first. You can change it any time." />
+          <ChipGroup legend="What matters most right now?" single options={FOCUS_OPTIONS} selected={prof.focus ? [prof.focus] : []} onToggle={(v) => set((p) => ({ ...p, profile: { ...prof, focus: v as typeof prof.focus } }))} />
+          {nav(<button type="button" className="btn tertiary" onClick={next}>Skip</button>)}
+        </>
+      );
+      break;
+    }
     case 'check':
       body = (
         <>

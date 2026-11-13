@@ -2,10 +2,45 @@ import type { Pence } from './money';
 import { pounds } from './money';
 import type { ISODate } from './dates';
 import { addDays, addMonths, daysBetween, isValidISO } from './dates';
-import type { Entry, Plan, PayFrequency } from './types';
+import type { Entry, Plan, PayFrequency, Profile } from './types';
 import { derivePlan, periodEnd } from './calc';
 
 let counter = 0;
+
+/** Local date and time, "YYYY-MM-DDTHH:MM", so entries land on the person's own calendar day. */
+export function localStamp(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+export const defaultProfile: Profile = { name: '', focus: null, household: null, spendsOn: [], detail: 'simple' };
+
+/** Fictional past logs for the sample so Week and Month insights have something to read. */
+export function sampleHistory(today: ISODate): Entry[] {
+  const out: Entry[] = [];
+  const at = (daysAgo: number, time = '12:00') => `${addDays(today, -daysAgo)}T${time}`;
+  let n = 0;
+  const add = (daysAgo: number, e: NewEntry) => out.push({ ...e, id: `h-${n++}`, at: at(daysAgo) } as Entry);
+  for (let w = 0; w < 4; w++) {
+    const o = w * 7;
+    add(o + 1, { kind: 'spend', amount: pounds(48), category: 'groceries', note: 'big shop' });
+    add(o + 4, { kind: 'spend', amount: pounds(w === 0 ? 37 : 41), category: 'groceries', note: 'top-up shop' });
+    add(o + 2, { kind: 'spend', amount: pounds(6), category: 'transport', note: 'bus' });
+    add(o + 5, { kind: 'spend', amount: pounds(6), category: 'transport', note: 'bus' });
+    add(o + 3, { kind: 'spend', amount: pounds(w % 2 ? 22 : 18), category: 'other', note: 'takeaway' });
+    add(o + 2, { kind: 'spend', amount: pounds(3.2), category: 'other', note: 'coffee' });
+    add(o + 6, { kind: 'spend', amount: pounds(3.2), category: 'other', note: 'coffee' });
+    add(o + 7, { kind: 'income', amount: pounds(380), note: 'Weekly wage (sample)' });
+    add(o + 7, { kind: 'goalSaved', amount: pounds(w === 2 ? 30 : 60), goalId: 'goal-house' });
+    if (w < 3) add(o + 7, { kind: 'goalSaved', amount: pounds(40), goalId: 'goal-emergency' });
+  }
+  add(9, { kind: 'income', amount: pounds(120), note: 'extra shift' });
+  add(12, { kind: 'spend', amount: pounds(24), category: 'other', note: 'clothes' });
+  add(20, { kind: 'billPaid', amount: pounds(220), billId: 'bill-rent' });
+  add(26, { kind: 'billPaid', amount: pounds(30), billId: 'bill-phone' });
+  add(25, { kind: 'debtPaid', amount: pounds(50), debtId: 'debt-card', part: 'minimum' });
+  return out.sort((a, b) => a.at.localeCompare(b.at));
+}
 export function uid(prefix = 'id'): string {
   counter += 1;
   return `${prefix}-${Date.now().toString(36)}-${counter}-${Math.random().toString(36).slice(2, 6)}`;
@@ -36,12 +71,14 @@ export function samplePlan(today: ISODate): Plan {
       { id: 'debt-card', name: 'Credit card (0%)', kind: 'card', balance: pounds(600), minimum: pounds(50), dueDate: addDays(today, 5), minimumPaid: 0, extraRequested: pounds(30), extraPaid: 0, interest: 'none', fees: 'none' },
     ],
     goals: [
-      { id: 'goal-emergency', name: 'Emergency savings', target: pounds(500), saved: 0, priority: 1, deadline: null, contribution: pounds(40), savedThisPeriod: 0 },
+      { id: 'goal-emergency', name: 'Emergency savings', target: pounds(500), saved: pounds(120), priority: 1, deadline: null, contribution: pounds(40), savedThisPeriod: 0 },
       { id: 'goal-house', name: 'House deposit', target: pounds(3000), saved: pounds(400), priority: 2, deadline: null, contribution: pounds(60), savedThisPeriod: 0 },
     ],
     sections: { income: 'filled', bills: 'filled', essentials: 'filled', debts: 'filled', goals: 'filled' },
     entries: [],
     confirmed: true,
+    history: sampleHistory(today),
+    profile: { name: 'Sam', focus: 'runningOut', household: 'sharing', spendsOn: ['Takeaway', 'Coffee'], detail: 'simple' },
   };
 }
 
@@ -84,13 +121,15 @@ export function reanchorSample(plan: Plan, today: ISODate): Plan {
     bills: plan.bills.map((b) => ({ ...b, dueDate: mv(b.dueDate) })),
     debts: plan.debts.map((t) => ({ ...t, dueDate: mv(t.dueDate) })),
     goals: plan.goals.map((g) => ({ ...g, deadline: mv(g.deadline) })),
+    entries: plan.entries.map((e) => (e.at ? { ...e, at: addDays(e.at.slice(0, 10), shift) + e.at.slice(10) } : e)),
+    history: plan.history?.map((e) => ({ ...e, at: addDays(e.at.slice(0, 10), shift) + e.at.slice(10) })),
   };
 }
 
 type NewEntry = Entry extends infer E ? (E extends Entry ? Omit<E, 'id' | 'at'> : never) : never;
 
 export function addEntry(plan: Plan, e: NewEntry): Plan {
-  const entry = { ...e, id: uid('e'), at: new Date().toISOString() } as Entry;
+  const entry = { ...e, id: uid('e'), at: localStamp(new Date()) } as Entry;
   return { ...plan, entries: [...plan.entries, entry] };
 }
 
@@ -155,6 +194,7 @@ export function startNewPeriod(plan: Plan, today: ISODate, cash: Pence, nextPayd
     goals: derived.goals.map((g) => ({ ...g, savedThisPeriod: 0 })),
     incomes: derived.incomes.map((i) => ({ ...i, nextDate: i.nextDate && daysBetween(today, i.nextDate) <= 0 ? nextDateFor(i.frequency, i.nextDate) : i.nextDate })),
     entries: [],
+    history: [...(plan.history ?? []), ...plan.entries].filter((e) => e.at && daysBetween(e.at.slice(0, 10), today) <= 120),
   };
 }
 

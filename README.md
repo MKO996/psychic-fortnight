@@ -27,8 +27,8 @@ Everything is bundled. After the page loads, planning and typing need no interne
 ## Tests
 
 ```bash
-npm test             # 43 unit tests: calculation, parser, talk-to-plan
-npm run build && npm run e2e   # 89 browser checks in Chromium at 320–360px, all external requests blocked
+npm test             # 50 unit tests: calculation, parser, talk-to-plan
+npm run build && npm run e2e   # 110 browser checks in Chromium at 320–360px, all external requests blocked
 ```
 
 The e2e script saves screenshots to `screenshots/`.
@@ -70,6 +70,16 @@ Logging a planned payment (bill paid, money moved to a pot) lowers cash and that
 - Typing always works. **Try an example** runs the flow without a microphone, and the phone keyboard's own dictation works in the text box.
 - The in-app **Speak** button appears only if the browser confirms **on-device** speech recognition (`SpeechRecognition.available({ processLocally: true })`). LEFT doesn't offer recognition that might send audio to a server, and it never stores audio.
 - What was verified: the typed path, the examples, and the whole mic path (button → recognised words → *Check what I heard*) using a **simulated** on-device engine in Chromium. Real speech recognition was **not** verified: the headless Chromium here has no speech model, and its `available()` check crashes the tab. LEFT guards against this. It records that a check started, and if a check ever crashes the tab, it never runs it again and falls back to typing.
+
+## Insights, summary and quick add
+
+- **Get your insights** (Today) → Today / This week / This month. These are rule-based observations worked out on the phone, grouped as *Coming up*, *Worth changing* and *Keep doing*. Each one says why, with the numbers. Code: `src/insights.ts`.
+- **Summary:** a ring showing what's left until payday, plus spent this pay, days to payday, bars for bills paid, groceries left and savings moved, and the next payment.
+- **Upcoming payments:** next bills and debt payments with a one-tap **Paid** button, plus expected income.
+- **Quick add spending:** tap a category, tap an amount.
+- **About you** (Settings or Insights): tap what matters most and what you often spend on. This changes the order of insights and the Quick add buttons, never the money figures.
+
+See `DEVLOG.md` for what changed in each session and why.
 
 ## Money check-in reminders (coin mascot)
 
