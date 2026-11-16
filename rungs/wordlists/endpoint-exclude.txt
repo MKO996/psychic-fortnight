@@ -1,0 +1,55 @@
+# Words that are fine as moves, but should never be a puzzle's START or TARGET.
+# Mostly names, places and abbreviations that score high in word-frequency data.
+# Add to this list whenever a daily puzzle feels unfair.
+# (Everything in path-exclude.txt is excluded here too.)
+
+# --- fine as moves, but not as a family game's headline word ---
+abuse
+beer
+bible
+bomb
+booty
+booze
+bowel
+bum
+caste
+cigar
+coke
+crime
+curse
+death
+deity
+demon
+devil
+drug
+drunk
+dummy
+fatty
+fetus
+gin
+god
+gore
+hymn
+idiot
+imam
+kill
+loser
+lynch
+mafia
+meth
+moron
+naked
+obese
+pagan
+pee
+psalm
+rabbi
+rifle
+rum
+saint
+slave
+trump
+urine
+vodka
+vomit
+wine
