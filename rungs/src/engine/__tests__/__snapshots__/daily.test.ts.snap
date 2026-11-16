@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`daily puzzle golden: known dates keep their puzzles 1`] = `
+[
+  "2026-11-16 #1 easy: lid -> six (par 3)",
+  "2026-11-18 #3 medium: clad -> tent (par 6)",
+  "2026-11-21 #6 hard: adobe -> shove (par 7)",
+  "2027-01-01 #47 medium: soak -> mare (par 6)",
+]
+`;
