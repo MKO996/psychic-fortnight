@@ -30,3 +30,12 @@ One line per decision, and why. Newest at the bottom of each phase.
 - Hint = shortest route avoiding used words, common words first, then any valid word; reveals only the letter position. Returns `stuck` when no route exists (UI will suggest erasing a rung).
 - Added `eraseLast` (undo) to the engine: on a real whiteboard you can wipe a rung, and without it a player can get permanently stuck. Score = final ladder length, so erasing can't be used to cheat.
 - Move errors are typed (`not-a-word`, `already-used`, …) instead of a boolean, so the UI can react differently to each.
+
+## Spec update (v2 prompt, before Phase 2)
+- Design direction changed from "whiteboard and red marker" to "casual arcade puzzle": dark calm background, bright chunky tiles, one colour per job. Phase 2 follows v2; the hand-drawn underline stays as our signature detail.
+- Unlockables are now tile colours and board themes (were marker colours).
+- First launch opens straight into the CAT → COT → DOT → DOG puzzle: added `TUTORIAL_PUZZLE` and `tutorialGuide` to the engine.
+- The tutorial has its own script, because the normal hint follows BFS order (CAT → COT → COG → DOG) and would point at a different tile than the planned path.
+- If the player leaves the script with a valid move, the guide falls back to the normal position-only hint, so we never punish a clever player.
+- The tutorial never builds the word graph while the player follows the arrow (move checks are Set lookups), so the first move answers instantly, inside the 5-second goal.
+- Sections 1 (skills) and 3 (engine) are unchanged in v2, so they were not redone.

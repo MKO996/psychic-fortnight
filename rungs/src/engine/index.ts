@@ -9,3 +9,4 @@ export * from './hint';
 export * from './ladder';
 export * from './moves';
 export * from './random';
+export * from './tutorial';
