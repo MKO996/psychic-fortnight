@@ -27,8 +27,8 @@ Everything is bundled. After the page loads, planning and typing need no interne
 ## Tests
 
 ```bash
-npm test             # 50 unit tests: calculation, parser, talk-to-plan
-npm run build && npm run e2e   # 110 browser checks in Chromium at 320–360px, all external requests blocked
+npm test             # 59 unit tests: calculation, parser, talk-to-plan
+npm run build && npm run e2e   # 129 browser checks in Chromium at 320–360px, all external requests blocked
 ```
 
 The e2e script saves screenshots to `screenshots/`.
@@ -70,6 +70,10 @@ Logging a planned payment (bill paid, money moved to a pot) lowers cash and that
 - Typing always works. **Try an example** runs the flow without a microphone, and the phone keyboard's own dictation works in the text box.
 - The in-app **Speak** button appears only if the browser confirms **on-device** speech recognition (`SpeechRecognition.available({ processLocally: true })`). LEFT doesn't offer recognition that might send audio to a server, and it never stores audio.
 - What was verified: the typed path, the examples, and the whole mic path (button → recognised words → *Check what I heard*) using a **simulated** on-device engine in Chromium. Real speech recognition was **not** verified: the headless Chromium here has no speech model, and its `available()` check crashes the tab. LEFT guards against this. It records that a check started, and if a check ever crashes the tab, it never runs it again and falls back to typing.
+
+## Game layer (always on)
+
+Level, XP and streak bar on every main screen; **Daily quests** on Today; a **Trophies** tab with badges and the level path; goal stars. XP only rewards habits (checking, logging, paying, saving) and never the amount spent. Undo takes XP back. Code: `src/game.ts`.
 
 ## Insights, summary and quick add
 

@@ -8,11 +8,10 @@ import QuickAdd from '../components/QuickAdd';
 import Pots from './Pots';
 import type { View } from '../calc';
 import ReminderCard from '../components/ReminderCard';
-import Coin from '../components/Coin';
-import { reminderCopy } from '../reminders';
+import Quests from '../components/Quests';
 
 export default function Today() {
-  const { summary: s, go, kind, pendingReminder: rem, openReminder, snoozeReminder, turnOffReminder, reminders } = useApp();
+  const { summary: s, go, kind, pendingReminder: rem, openReminder, snoozeReminder, turnOffReminder } = useApp();
   const endWord = s.endKind === 'review' ? 'your review date' : 'payday';
 
   return (
@@ -54,6 +53,8 @@ export default function Today() {
         <button type="button" className="btn secondary xl" onClick={() => go({ name: 'plan' })}>View plan</button>
       </div>
 
+      <Quests />
+
       {s.status !== 'incomplete' && (
         <button type="button" className="insights-btn" onClick={() => go({ name: 'insights' })}>
           <span className="insights-spark" aria-hidden="true">✦</span>
@@ -65,7 +66,6 @@ export default function Today() {
       {s.status !== 'incomplete' && <Upcoming />}
       {s.status !== 'incomplete' && <QuickAdd />}
 
-      {(kind === 'sample' || reminders.enabled) && <CheckIn />}
 
       {s.status === 'incomplete' && (
         <section className="card attention" aria-labelledby="missing-h">
@@ -109,25 +109,3 @@ function Views({ views }: { views: View[] }) {
   );
 }
 
-function CheckIn() {
-  const { checkedInToday, checkInNow, pendingReminder: rem } = useApp();
-  const waiting = rem && rem.opened ? reminderCopy(rem.stage, rem.tone) : null;
-  return (
-    <section className="card checkin" aria-labelledby="checkin-h" data-testid="checkin">
-      <div className="reminder-row">
-        {checkedInToday ? (
-          <Coin mood="celebrate" label="The coin is happy" size={72} />
-        ) : waiting ? (
-          <Coin mood={waiting.mood} label={`${waiting.moodLabel}, still waiting`} size={72} />
-        ) : (
-          <Coin mood="idle" label="The coin is waiting" size={72} />
-        )}
-        <div>
-          <h2 id="checkin-h">{checkedInToday ? 'Checked in today' : 'Daily money check-in'}</h2>
-          <p className="hint">{checkedInToday ? 'Nice. The coin can relax until tomorrow.' : waiting ? 'You’re here. Look at your numbers above, then tell the coin.' : 'Had a look at your numbers? Tell the coin.'}</p>
-        </div>
-      </div>
-      {!checkedInToday && <button type="button" className="btn primary" onClick={checkInNow}>Checked today</button>}
-    </section>
-  );
-}

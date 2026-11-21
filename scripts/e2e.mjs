@@ -491,6 +491,61 @@ try {
     check('insights: no external requests', external.length === 0);
     await page.context().close();
   }
+
+  // 16. Game layer: HUD, quests, XP, streak, trophies, stars
+  {
+    const page = await freshSample();
+    const hud = page.getByTestId('hud');
+    const label0 = await hud.getAttribute('aria-label');
+    check('HUD shows level, XP and streak', /^Level \d+, [A-Za-z ]+\. \d+ of \d+ XP to level \d+\. \d+-day streak, check in to keep it going/.test(label0), label0);
+    check('quests: three, none done', (await page.locator('.quest').count()) === 3 && (await page.locator('.quest.done').count()) === 0);
+    check('quest 3 follows the plan (rent due soon)', (await page.getByTestId('quest-bill').innerText()).includes('Mark rent paid when it goes out'));
+    check('streak at risk message', await page.getByText(/Check in today to keep your \d+-day streak/).isVisible());
+    await page.screenshot({ path: `${SHOTS}/14-game-today-360.png`, fullPage: true });
+    const xp = async () => Number((await hud.getAttribute('aria-label')).match(/(\d+) of/)[1]);
+    const before = await xp();
+    await page.getByTestId('checkin').getByRole('button', { name: 'Checked today' }).click();
+    check('XP pop after check-in', /\+\d+ XP/.test(await page.getByTestId('xp-pop').innerText()));
+    check('streak lit today', !(await hud.getAttribute('aria-label')).includes('check in to keep it going') && await page.locator('.hud-streak.lit').isVisible());
+    await page.getByRole('button', { name: 'Nothing spent today' }).click();
+    check('quest 2 done with Nothing spent', await page.getByTestId('quest-log').evaluate((el) => el.classList.contains('done')));
+    await page.getByRole('button', { name: 'Mark Rent paid, £220' }).click();
+    check('all quests done', await page.getByRole('heading', { name: 'All quests done!' }).isVisible());
+    const after = await xp();
+    check('XP grew from habits', after !== before || (await hud.getAttribute('aria-label')).includes('Level'));
+    check('money figure unchanged by the game: still £10.00', (await text(page, '[data-testid=safe-today]')) === '£10.00');
+    // Undo takes XP back
+    const xpTotal = async () => { await page.getByRole('navigation').getByRole('button', { name: 'Trophies' }).click(); const t = await page.locator('.level-card .hint').innerText(); return Number(t.match(/(\d+) XP in total/)[1]); };
+    const withRent = await xpTotal();
+    await page.getByRole('navigation').getByRole('button', { name: 'Plan' }).click();
+    await page.getByRole('button', { name: /^Undo: Paid Rent/ }).click();
+    const withoutRent = await xpTotal();
+    check('undo takes XP back', withoutRent < withRent, `${withRent} → ${withoutRent}`);
+    check('trophies: badges earned and locked', (await page.locator('.badge-tile.earned').count()) > 0 && (await page.locator('.badge-tile.locked').count()) > 0);
+    check('trophies: debt badge still locked', (await page.getByTestId('badge-debt').innerText()).includes('Make an extra debt payment'));
+    await page.screenshot({ path: `${SHOTS}/15-trophies-360.png`, fullPage: true });
+    // Insights unlock a badge
+    await page.getByRole('navigation').getByRole('button', { name: 'Today' }).click();
+    await page.getByRole('button', { name: /Get your insights/ }).click();
+    await page.getByRole('button', { name: '‹ Back' }).click();
+    await page.getByRole('navigation').getByRole('button', { name: 'Trophies' }).click();
+    check('reading insights earns Curious mind', (await page.getByTestId('badge-insight').innerText()).includes('Earned'));
+    await page.getByRole('navigation').getByRole('button', { name: 'Goals' }).click();
+    check('goal stars: house 0 of 4, next star at £750', (await page.getByTestId('goal-goal-house').getByTestId('stars').innerText()).includes('0 of 4 stars · next star at £750'));
+    for (const tab of ['Today', 'Trophies']) {
+      await page.getByRole('navigation').getByRole('button', { name: tab }).click();
+      await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+      const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      check(`game ${tab} at 200% text: no sideways scroll`, ov <= 0, String(ov));
+      await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+    }
+    await page.context().close();
+    const rm = await freshSample({ reducedMotion: 'reduce' });
+    check('reduced motion: HUD bar and quest pop still', (await rm.locator('.hud-fill').evaluate((el) => getComputedStyle(el).transitionDuration)) === '0s');
+    await rm.getByTestId('checkin').getByRole('button', { name: 'Checked today' }).click();
+    check('reduced motion: XP still shown in text', /\+\d+ XP/.test(await rm.getByTestId('xp-pop').innerText()));
+    await rm.context().close();
+  }
 } catch (e) {
   check('script error', false, e.message.split('\n').slice(0, 3).join(' | '));
 } finally {

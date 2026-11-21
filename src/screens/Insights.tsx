@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app-context';
 import { buildInsights, RANGE_LABEL, type Insight, type Range } from '../insights';
 import { money } from '../money';
@@ -10,7 +10,8 @@ const GROUPS: { tone: Insight['tone']; title: string; icon: string }[] = [
 ];
 
 export default function Insights() {
-  const { plan, summary, today, go } = useApp();
+  const { plan, summary, today, go, recordInsightView } = useApp();
+  useEffect(() => { recordInsightView(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [range, setRange] = useState<Range>('week');
   const [showAll, setShowAll] = useState(false);
   const profile = plan.profile;

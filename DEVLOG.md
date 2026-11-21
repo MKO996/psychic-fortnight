@@ -99,3 +99,48 @@ What we did **not** copy: their look, the gems or streak currency, and any brand
 **Open questions**
 - Should insights also give a monthly "pay-cycle report" when a new pay period starts?
 - Should Quick add learn amounts (for example, suggest your usual coffee price)?
+
+---
+
+## 4. Always-on game style (21 Nov 2026)
+
+**Ask:** make the UI and UX feel like a game, all the time.
+
+**Added**
+- `src/game.ts`: the game layer. **Everything is derived** from what the person actually did (logged entries plus check-in, "nothing spent" and insight-view days). Nothing is stored as a running score.
+  - **XP:** checking in +10 a day; logging spending or income +5 (counts up to 3 a day); bill or debt payment paid +15; money moved to a goal +20; plan finished +50; each badge +25; all 3 daily quests done +30.
+  - **Levels:** 100, 250, 450, 700… XP. Titles: Rookie → Tracker → Planner → Steady Hand → Bill Boss → Pot Master → Money Captain → Legend.
+  - **Streak:** consecutive days with any money action. It stays alive until the end of today, and is shown "at risk" if today isn't done yet.
+  - **11 badges:** for example First look, On a roll (3 days), Full week, Bill boss, Pot filler, Quarter way, Debt dent and Curious mind.
+  - **3 daily quests:** Check your money, Log today's spending (or "Nothing spent today"), plus one that fits the plan: mark a bill paid when one is due within 3 days, otherwise move money to a goal, otherwise read your insights.
+- **Status bar** under the top bar on every main screen: level shield, title, XP bar and streak flame. Tapping it opens Trophies.
+- **Trophies tab** (4th tab): level card, streak and best streak, badge grid with locked badges showing how to win them, level path, and "How you earn XP".
+- **XP pop-up** "+10 XP" after every habit, and a short **Level up!** card with the coin.
+- **Goal stars:** 4 stars at 25, 50, 75 and 100% of the target, plus "next star at £…".
+- **Visual style:**
+  - chunky buttons that press down;
+  - a green primary colour (6:1 contrast with white) and purple for levels and selections;
+  - game-panel cards and striped progress bars;
+  - the system rounded font on iPhone (`ui-rounded`);
+  - emoji tab icons.
+
+**Changed**
+- The Daily money check-in card became the **Daily quests** card. It keeps its "Checked today" button and the coin.
+- The coin now celebrates after every confirmed money action, not only when reminders are on, because the game is always on.
+- Check-ins are now recorded in the plan (`plan.game`), so the sample and your own plan keep separate progress, and Reset sample resets the game.
+
+**Removed:** nothing user-facing. The plain check-in card was replaced by Daily quests.
+
+**Why (design rules we chose)**
+1. **Never reward spending.** XP ignores amounts (logging £2 = logging £200), logging XP is capped per day, and spending more can never earn more. Unit tests prove both.
+2. **Undo takes XP back**, because XP is derived from the real log. You can't cheat it, and mistakes aren't punished.
+3. **No penalties.** Missing a day only resets the streak. There's no lost XP and no shame.
+4. **XP, not coins.** A points currency in a money app would be confused with real pounds.
+5. **The game sits on top of the maths, never inside it.** The Safe to spend figure is the same with or without the game.
+6. **Accessibility kept:** every game element is also text, Reduce motion stops all game animation, and controls stay at least 48px. Tested at 200% text.
+
+**Checked:** 59 unit tests and 129 browser checks: status bar wording, quests following the plan, XP pop-up, streak lighting up, all quests done, undo taking XP back, locked and earned badges, insights unlocking a badge, goal stars, 200% text, reduced motion, offline.
+
+**Open questions**
+- Should a missed day be forgiven once a week (a "rest day"), so streaks feel less stressful?
+- Should levels unlock something useful, such as new coin outfits or themes, rather than only titles?

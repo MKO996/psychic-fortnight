@@ -4,6 +4,7 @@ import type { Summary } from './calc';
 import type { Settings } from './store';
 import type { ISODate } from './dates';
 import type { ReminderState, Stage, Tone } from './reminders';
+import type { GameState } from './game';
 
 export type Screen =
   | { name: 'welcome' }
@@ -17,6 +18,7 @@ export type Screen =
   | { name: 'newPeriod' }
   | { name: 'remindersDemo' }
   | { name: 'insights' }
+  | { name: 'trophies' }
   | { name: 'about'; back?: 'insights' | 'settings' };
 
 export interface AppCtx {
@@ -47,6 +49,9 @@ export interface AppCtx {
   simulateReminder: (stage: Stage, tone: Tone) => void;
   checkedInToday: boolean;
   checkInNow: () => void;
+  game: GameState;
+  recordInsightView: () => void;
+  markNoSpend: () => void;
 }
 
 export const Ctx = createContext<AppCtx | null>(null);

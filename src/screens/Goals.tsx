@@ -34,6 +34,15 @@ export default function Goals() {
                 <span className="badge">Priority {g.priority}</span>
               </div>
               {g.target !== null && <Progress value={g.saved} max={g.target} label={`${g.name}: ${money(g.saved)} saved of ${money(g.target)}`} />}
+              {g.target !== null && (() => {
+                const stars = [0.25, 0.5, 0.75, 1].filter((m) => g.saved >= g.target! * m).length;
+                return (
+                  <p className="milestones" data-testid="stars">
+                    <span aria-hidden="true">{[0, 1, 2, 3].map((i) => <span key={i} className={i < stars ? 'star on' : 'star'}>★</span>)}</span>
+                    <span>{stars} of 4 stars{stars < 4 ? ` · next star at ${money(g.target * [0.25, 0.5, 0.75, 1][stars])}` : ' · goal complete!'}</span>
+                  </p>
+                );
+              })()}
               <dl className="figures">
                 <div><dt>Saved</dt><dd className="amount" data-testid="saved">{money(g.saved)}</dd></div>
                 <div><dt>Set aside from this pay</dt><dd className="amount" data-testid="set-aside">{money(line.allocated)}</dd></div>

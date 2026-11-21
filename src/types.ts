@@ -96,6 +96,14 @@ export interface Plan {
   /** Logged entries from earlier pay periods, kept for insights (about 4 months). */
   history?: Entry[];
   profile?: Profile;
+  game?: GameLog;
+}
+
+/** Days the person did a healthy money action that isn't a logged entry. XP is derived from this + entries. */
+export interface GameLog {
+  checkIns: string[];
+  noSpendDays: string[];
+  insightDays: string[];
 }
 
 export type Focus = 'runningOut' | 'bills' | 'debt' | 'saving' | 'whereItGoes';

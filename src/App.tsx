@@ -18,6 +18,9 @@ import RemindersDemo from './screens/RemindersDemo';
 import Insights from './screens/Insights';
 import About from './screens/About';
 import Coin from './components/Coin';
+import { computeGame, recordDay, type GameState } from './game';
+import Hud from './components/Hud';
+import Trophies from './screens/Trophies';
 import { checkIn, dueStage, markShown, snooze, turnOff, type ReminderState, type Stage, type Tone } from './reminders';
 
 function useToday() {
@@ -89,6 +92,23 @@ export default function App() {
 
   const plan = kind === 'sample' ? sample : kind === 'personal' ? personal : null;
   const summary = useMemo(() => (plan ? computePlan(plan, today) : null), [plan, today]);
+  const game = useMemo<GameState | null>(() => (plan && summary ? computeGame(plan, summary, today) : null), [plan, summary, today]);
+
+  // XP pop and level-up, only for real changes within the same plan.
+  const lastGame = useRef<{ kind: string | null; xp: number; level: number } | null>(null);
+  const [xpPop, setXpPop] = useState<{ id: number; gain: number; level?: number; title?: string } | null>(null);
+  useEffect(() => {
+    if (!game) return;
+    const prev = lastGame.current;
+    lastGame.current = { kind, xp: game.xp, level: game.level };
+    if (!prev || prev.kind !== kind || game.xp <= prev.xp) return;
+    setXpPop({ id: Date.now(), gain: game.xp - prev.xp, ...(game.level > prev.level ? { level: game.level, title: game.title } : {}) });
+  }, [game, kind]);
+  useEffect(() => {
+    if (!xpPop) return;
+    const t = setTimeout(() => setXpPop(null), xpPop.level ? 4500 : 2200);
+    return () => clearTimeout(t);
+  }, [xpPop]);
 
   const go = useCallback((s: Screen) => {
     setScreen(s);
@@ -108,23 +128,8 @@ export default function App() {
   }, [kind, reminders, tick, pending]);
 
   const isDemo = kind === 'sample';
-  const remindersOn = isDemo || reminders.enabled;
-  const checkedInToday = isDemo ? demoCheckedIn : reminders.lastCheckIn === today && reminders.enabled;
-
-  const registerCheckIn = useCallback(() => {
-    if (kind === 'sample') setDemoCheckedIn(true);
-    else if (reminders.enabled) setRemindersState((r) => checkIn(r, new Date()));
-    setPending(null);
-  }, [kind, reminders.enabled]);
-
-  const celebrate = useCallback(
-    (msg: string) => {
-      // Used after confirmed actions (plan confirmed, savings marked): also a check-in.
-      setToast({ id: Date.now(), text: msg, celebrate: settings.celebrations, coin: remindersOn && settings.celebrations });
-      registerCheckIn();
-    },
-    [settings.celebrations, remindersOn, registerCheckIn],
-  );
+  const checkedInToday = !!game?.quests[0].done;
+  void demoCheckedIn;
 
   const setPlan = useCallback(
     (fn: (p: Plan) => Plan) => {
@@ -134,17 +139,33 @@ export default function App() {
     [kind],
   );
 
+  const registerCheckIn = useCallback(() => {
+    if (kind === 'sample') setDemoCheckedIn(true);
+    else if (reminders.enabled) setRemindersState((r) => checkIn(r, new Date()));
+    setPlan((p) => recordDay(p, 'checkIns', todayISO()));
+    setPending(null);
+  }, [kind, reminders.enabled, setPlan]);
+
+  const celebrate = useCallback(
+    (msg: string) => {
+      // Used after confirmed actions (plan confirmed, savings marked): also a check-in.
+      setToast({ id: Date.now(), text: msg, celebrate: settings.celebrations, coin: settings.celebrations });
+      registerCheckIn();
+    },
+    [settings.celebrations, registerCheckIn],
+  );
+
   const update = useCallback(
     (fn: (p: Plan) => Plan, message?: string) => {
       const before = plan;
       setPlan(fn);
       if (message) {
         // A confirmed money update counts as a check-in: the coin celebrates and the sequence resets.
-        setToast({ id: Date.now(), text: message, undo: before ?? undefined, coin: remindersOn && settings.celebrations });
+        setToast({ id: Date.now(), text: message, undo: before ?? undefined, coin: settings.celebrations });
         registerCheckIn();
       }
     },
-    [plan, setPlan, remindersOn, settings.celebrations, registerCheckIn],
+    [plan, setPlan, settings.celebrations, registerCheckIn],
   );
 
 
@@ -168,7 +189,7 @@ export default function App() {
     go(p.confirmed ? { name: 'today' } : { name: 'setup' });
   };
 
-  const ctx: AppCtx | null = plan && summary && kind
+  const ctx: AppCtx | null = plan && summary && kind && game
     ? {
         today,
         kind,
@@ -219,6 +240,13 @@ export default function App() {
           setPending({ stage, tone, demo: true, opened: false });
         },
         checkedInToday,
+        game: game!,
+        recordInsightView: () => setPlan((p) => recordDay(p, 'insightDays', today)),
+        markNoSpend: () => {
+          setPlan((p) => recordDay(p, 'noSpendDays', today));
+          registerCheckIn();
+          setToast({ id: Date.now(), text: 'Nothing spent today: logged. Nice and simple.', coin: settings.celebrations });
+        },
         checkInNow: () => {
           registerCheckIn();
           setToast({ id: Date.now(), text: settings.celebrations ? 'Checked in! The coin is thrilled. See you tomorrow.' : 'Checked in for today.', coin: settings.celebrations, celebrate: settings.celebrations });
@@ -238,7 +266,7 @@ export default function App() {
     );
   }
 
-  const tab = screen.name === 'plan' ? 'plan' : screen.name === 'goals' ? 'goals' : screen.name === 'today' ? 'today' : null;
+  const tab = screen.name === 'plan' ? 'plan' : screen.name === 'goals' ? 'goals' : screen.name === 'today' ? 'today' : screen.name === 'trophies' ? 'trophies' : null;
 
   return (
     <Ctx.Provider value={ctx}>
@@ -264,6 +292,7 @@ export default function App() {
           </div>
         </div>
       )}
+      {tab && <Hud game={game!} onOpen={() => go({ name: 'trophies' })} />}
       <main id="main" ref={mainRef} tabIndex={-1}>
         {screen.name === 'today' && <Today />}
         {screen.name === 'talk' && <Talk initial={screen.text} />}
@@ -275,18 +304,33 @@ export default function App() {
         {screen.name === 'newPeriod' && <NewPeriod />}
         {screen.name === 'remindersDemo' && <RemindersDemo />}
         {screen.name === 'insights' && <Insights />}
+        {screen.name === 'trophies' && <Trophies />}
         {screen.name === 'about' && <About back={screen.back} />}
       </main>
       {tab && (
         <nav className="tabs" aria-label="Main">
-          {(['today', 'plan', 'goals'] as const).map((t) => (
+          {(['today', 'plan', 'goals', 'trophies'] as const).map((t) => (
             <button key={t} type="button" aria-current={tab === t ? 'page' : undefined} onClick={() => go({ name: t })}>
-              <span aria-hidden="true" className="tab-icon">{t === 'today' ? '◉' : t === 'plan' ? '☰' : '★'}</span>
-              {t === 'today' ? 'Today' : t === 'plan' ? 'Plan' : 'Goals'}
+              <span aria-hidden="true" className="tab-icon">{t === 'today' ? '🏠' : t === 'plan' ? '🗺️' : t === 'goals' ? '🎯' : '🏆'}</span>
+              {t === 'today' ? 'Today' : t === 'plan' ? 'Plan' : t === 'goals' ? 'Goals' : 'Trophies'}
             </button>
           ))}
         </nav>
       )}
+      <div className="xp-area" aria-live="polite">
+        {xpPop && (
+          <div className={`xp-pop ${xpPop.level ? 'level-up' : ''}`} key={xpPop.id} data-testid="xp-pop">
+            {xpPop.level ? (
+              <>
+                <Coin mood="celebrate" label="The coin celebrates" size={64} />
+                <span><strong>Level up! Level {xpPop.level}</strong><small>You’re now a {xpPop.title}. +{xpPop.gain} XP</small></span>
+              </>
+            ) : (
+              <span className="xp-gain">+{xpPop.gain} XP</span>
+            )}
+          </div>
+        )}
+      </div>
       <div className="toast-area" aria-live="polite">
         {toast && (
           <div className={`toast ${toast.celebrate ? 'celebrate' : ''}`} key={toast.id}>
