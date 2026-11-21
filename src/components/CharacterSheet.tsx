@@ -38,6 +38,7 @@ export default function CharacterSheet() {
   const statSub = (st: (typeof STATS)[number]) => (gameFirst ? st.label : st.game);
 
   return (
+    <>
     <section className="sheet" aria-labelledby="safe-h">
       <button type="button" className="sheet-head" onClick={() => go({ name: 'trophies' })} data-testid="hud"
         aria-label={`Level ${g.level}, ${g.title}. ${into} of ${need} XP to level ${g.level + 1}. ${g.streak}-day streak${g.streakAtRisk ? ', check in to keep it going' : ''}. Open trophies`}>
@@ -82,9 +83,11 @@ export default function CharacterSheet() {
         )}
       </div>
 
+    </section>
+
       {ready && (
-        <>
-          <h3 className="sheet-sub">Your {money(s.cash)}, split into 4 stats <small>Tap a stat to see what’s in it</small></h3>
+        <section aria-labelledby="stats-h">
+          <div className="bento-head"><h3 id="stats-h">Your {money(s.cash)}, split into 4 stats</h3><small>Tap a stat to see what’s in it</small></div>
           <ul className="stats">
             {STATS.map((st, i) => {
               const v = s.pots[st.key];
@@ -113,8 +116,8 @@ export default function CharacterSheet() {
             </div>
           )}
           {groceries && groceries.done > groceries.full && <p className="sheet-note">Groceries are {money(groceries.done - groceries.full)} over: that comes out of your spending money.</p>}
-          {s.nearestDue && <p className="sheet-next">{gameFirst ? 'Next encounter' : 'Next payment'}: <b>{s.nearestDue.name} {money(s.nearestDue.reserved)}</b>{s.nearestDue.dueDate && ` · ${shortDate(s.nearestDue.dueDate)} (${relativeDay(s.nearestDue.dueDate, today)})`}</p>}
-        </>
+          {s.nearestDue && <p className="sheet-next"><span>{gameFirst ? 'Next encounter' : 'Next payment'}: <b>{s.nearestDue.name} {money(s.nearestDue.reserved)}</b>{s.nearestDue.dueDate && ` · ${shortDate(s.nearestDue.dueDate)} (${relativeDay(s.nearestDue.dueDate, today)})`}</span></p>}
+        </section>
       )}
 
       {open && (
@@ -123,7 +126,7 @@ export default function CharacterSheet() {
           <button type="button" className="btn primary" onClick={() => setOpen(null)}>Close</button>
         </Modal>
       )}
-    </section>
+    </>
   );
 }
 

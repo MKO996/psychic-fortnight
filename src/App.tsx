@@ -88,6 +88,11 @@ export default function App() {
     store.saveSettings(settings);
     document.documentElement.dataset.large = settings.largeText ? 'true' : 'false';
     document.documentElement.dataset.motion = settings.reduceMotion ? 'reduce' : 'full';
+    const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
+    const apply = () => { document.documentElement.dataset.theme = settings.theme === 'system' ? (mq?.matches ? 'dark' : 'light') : settings.theme; };
+    apply();
+    mq?.addEventListener?.('change', apply);
+    return () => mq?.removeEventListener?.('change', apply);
   }, [settings]);
 
   const plan = kind === 'sample' ? sample : kind === 'personal' ? personal : null;

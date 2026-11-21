@@ -209,3 +209,46 @@ What we did **not** copy: their look, the gems or streak currency, and any brand
 **Bug found:** after switching in Settings, a refresh brought the link's version back. Fixed by removing `?v=` from the address once it's been applied.
 
 **Checked:** 59 unit tests and 136 browser checks, including both versions, same figures in each, switching, and surviving refresh.
+
+---
+
+## 7. Visual redesign: clean "Play" style, light + dark (21 Nov 2026)
+
+**Feedback:** "The look is bad. I don't like the cream background, the white and light cream or dark cream. Make it simple for the eye, gamified. Research Reddit and Quora."
+
+**Research**
+- **Reddit:** automated search is blocked by Reddit, so I couldn't read it directly. I used Quora plus design write-ups instead.
+- **Quora:** answers favour **clean, simple, flat, card-based** mobile UIs, and name Duolingo and savings apps such as Qapital and Piggy Goals as clean but playful gamification.
+  - https://www.quora.com/What-are-the-latest-trends-in-mobile-app-design-and-user-interface
+  - https://www.quora.com/What-are-the-best-examples-of-gamification-in-UI-UX-design-do-you-know
+  - https://www.quora.com/What-are-some-great-examples-of-fun-and-or-playful-UI
+- **Trend roundups 2026:** bento grid layouts, minimalism, micro-interactions, and dark mode growing in popularity.
+  - https://uxpilot.ai/blogs/mobile-app-design-trends
+  - https://muz.li/blog/whats-changing-in-mobile-app-design-ui-patterns-that-matter-in-2026/
+- **Background colour:** pure white strains eyes. Light neutral grey (Discord uses #F2F3F5) or off-white is the common choice, and you should test on cheap screens.
+  - https://www.figma.com/colors/off-white/
+  - https://dev.to/daksh-gargas/the-4-rule-picking-app-background-colors-that-survive-cheap-phone-screens-346k
+
+**Changed**
+- **Rewrote `src/styles.css` from scratch** (it had 4 layers of earlier styles) into one token-based design system.
+- **Background:** cool light grey `#F2F4F8`. No cream anywhere. White is used only for cards, never for the whole page.
+- **One bright accent:** violet `#5B47F5` (6:1 with white) with a violet→purple gradient for the character card, the main button and the level card.
+- **Bento stat tiles:** the 4 money stats are a 2×2 grid of soft-tinted tiles (blue bills, orange debt, green savings, amber spending) with big rounded numbers. Groceries is a pink full-width tile, and "Next payment" is a white tile.
+- **Flat and soft:** no hard borders or 3D bottom edges. Soft shadows and rounded corners (20px).
+- **Character card:** a purple gradient hero holding the coin avatar, level, XP bar (gold), streak and the big Safe to spend figure.
+- **Navigation:** a frosted see-through top bar and tab bar. The active tab is a soft violet pill.
+- **Quest cards:** white cards with a violet "QUEST" pill. They flip to green when done.
+- **Fonts:** system sans for text, rounded digits for money (`ui-rounded` on iPhone). The storybook serif headings are gone.
+- **New: Theme setting** (Light / Dark / Match my phone), because dark mode came up often in the research. A dark navy theme uses the same tile colours.
+
+**Removed:** the parchment/cream colours, the dark-navy panels with gold borders, the serif headings, the gold buttons, and all the leftover CSS from earlier designs.
+
+**Kept:** every class name, all screen layouts, the A/B stat names, controls of at least 48px, visible focus, Large text and reduced motion.
+
+**Bugs found:**
+- At 200% text the streak chip and Quick add labels overflowed. Fixed by letting the card header wrap and widening the Quick add buttons.
+- "Something else" broke mid-word in Quick add. Fixed with the wider buttons.
+
+**Checked:** 59 unit tests and 145 browser checks. New checks: background is the cool grey (not cream); text contrast ≥ 4.5:1 for small text and ≥ 3:1 for big numbers, in both light and dark; dark theme switching, no sideways scroll, and surviving refresh.
+
+**Open question:** should the app follow the phone's light/dark setting by default? It's Light for now, so usability tests look the same for everyone.

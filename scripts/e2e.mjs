@@ -571,6 +571,38 @@ try {
     await page.screenshot({ path: `${SHOTS}/18-version-A-360.png`, clip: { x: 0, y: 0, width: 360, height: 780 } });
     await page.context().close();
   }
+
+  // 18. Visual style: no cream, light + dark theme, readable contrast
+  {
+    const contrast = (page, sel) => page.locator(sel).first().evaluate((el) => {
+      const rgb = (c) => c.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const lum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+      let bgEl = el, bg = 'rgba(0, 0, 0, 0)';
+      while (bgEl && (bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent')) { bg = getComputedStyle(bgEl).backgroundColor; bgEl = bgEl.parentElement; }
+      const a = lum(rgb(getComputedStyle(el).color)), b = lum(rgb(bg));
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    });
+    const page = await freshSample();
+    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    check('light theme: cool grey background, not cream', bg === 'rgb(242, 244, 248)', bg);
+    check('light: hint text contrast ≥ 4.5', (await contrast(page, '.bento-head small')) >= 4.5, String((await contrast(page, '.bento-head small')).toFixed(2)));
+    check('light: stat value contrast ≥ 3 (large text)', (await contrast(page, '.stat-spending .stat-val')) >= 3, String((await contrast(page, '.stat-spending .stat-val')).toFixed(2)));
+    await page.screenshot({ path: `${SHOTS}/19-light-today-360.png`, fullPage: true });
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await page.getByText('Dark', { exact: true }).click();
+    check('dark theme applied', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark');
+    await page.getByRole('button', { name: '‹ Back' }).click();
+    check('dark: body text contrast ≥ 4.5', (await contrast(page, '.bento-head h3')) >= 4.5);
+    check('dark: hint contrast ≥ 4.5', (await contrast(page, '.bento-head small')) >= 4.5, String((await contrast(page, '.bento-head small')).toFixed(2)));
+    check('dark: stat value contrast ≥ 3', (await contrast(page, '.stat-bills .stat-val')) >= 3);
+    const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    check('dark: no sideways scroll', ov <= 0, String(ov));
+    await page.screenshot({ path: `${SHOTS}/20-dark-today-360.png`, fullPage: true });
+    await page.reload();
+    await page.getByTestId('safe-today').waitFor();
+    check('theme survives refresh', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark');
+    await page.context().close();
+  }
 } catch (e) {
   check('script error', false, e.message.split('\n').slice(0, 3).join(' | '));
 } finally {

@@ -9,6 +9,7 @@ export interface Settings {
   celebrations: boolean;
   /** A/B test: 'plain' = Version A (Bills & essentials first), 'game' = Version B (Shield first). */
   statNames: 'plain' | 'game';
+  theme: 'light' | 'dark' | 'system';
 }
 
 /** ?v=a or ?v=b in the address sets the test version, so a facilitator can share one link per version. */
@@ -55,7 +56,7 @@ export const store = {
   saveActive: (a: 'sample' | 'personal' | null) => write(KEYS.active, a),
   loadSettings: (): Settings => {
     const prefersReduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const saved = { largeText: false, reduceMotion: prefersReduced, celebrations: true, statNames: 'plain' as const, ...(read<Partial<Settings>>(KEYS.settings) ?? {}) };
+    const saved = { largeText: false, reduceMotion: prefersReduced, celebrations: true, statNames: 'plain' as const, theme: 'light' as const, ...(read<Partial<Settings>>(KEYS.settings) ?? {}) };
     const fromUrl = versionFromUrl();
     return fromUrl ? { ...saved, statNames: fromUrl } : saved;
   },

@@ -15,6 +15,11 @@ export default function SettingsScreen() {
       </div>
       <section className="card">
         <h2>Display</h2>
+        <Choice legend="Theme" value={settings.theme} onChange={(theme) => setSettings({ ...settings, theme })} options={[
+          { value: 'light', label: 'Light' },
+          { value: 'dark', label: 'Dark', hint: 'Easier at night' },
+          { value: 'system', label: 'Match my phone' },
+        ]} />
         <Toggle label="Large text" checked={settings.largeText} onChange={(b) => setSettings({ ...settings, largeText: b })} />
         <Toggle label="Reduce motion" hint="Pots and bars appear without moving." checked={settings.reduceMotion} onChange={(b) => setSettings({ ...settings, reduceMotion: b })} />
         <Toggle label="Celebrations" hint="A short message when you pay a bill or save." checked={settings.celebrations} onChange={(b) => setSettings({ ...settings, celebrations: b })} />
