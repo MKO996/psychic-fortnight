@@ -1,6 +1,6 @@
 import { useApp } from '../app-context';
 import { TITLES, XP, xpForLevel } from '../game';
-import Coin from '../components/Coin';
+import Coin, { OUTFITS } from '../components/Coin';
 
 export default function Trophies() {
   const { game: g } = useApp();
@@ -9,7 +9,7 @@ export default function Trophies() {
     <div className="screen trophies">
       <h1 tabIndex={-1}>Trophies</h1>
       <section className="card level-card">
-        <Coin mood="celebrate" label="The coin wearing your level" size={88} />
+        <Coin mood="celebrate" label={`Your coin character, level ${g.level}`} size={88} outfit={g.level} />
         <div>
           <p className="level-big">Level {g.level}</p>
           <p className="level-title">{g.title}</p>
@@ -31,6 +31,20 @@ export default function Trophies() {
             <small>{b.earned ? 'Earned' : b.how}</small>
           </li>
         ))}
+      </ul>
+
+      <h2 className="section-h">Outfits</h2>
+      <ul className="outfit-grid">
+        {OUTFITS.map((o) => {
+          const got = g.level >= o.level;
+          return (
+            <li key={o.name} className={`badge-tile ${got ? 'earned' : 'locked'}`} data-testid={`outfit-${o.level}`}>
+              <Coin mood={got ? 'idle' : 'sigh'} label={got ? `${o.name}, unlocked` : `${o.name}, locked until level ${o.level}`} size={64} outfit={o.level} />
+              <strong>{o.name}</strong>
+              <small>{got ? (o.level === OUTFITS.filter((x) => g.level >= x.level).slice(-1)[0].level ? 'Wearing now' : 'Unlocked') : `Unlocks at level ${o.level}`}</small>
+            </li>
+          );
+        })}
       </ul>
 
       <h2 className="section-h">Level path</h2>

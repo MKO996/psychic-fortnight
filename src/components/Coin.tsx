@@ -1,7 +1,16 @@
 import type { Mood } from '../reminders';
 
 /** LEFT's coin mascot. Decorative motion only; the mood is always given in text too. */
-export default function Coin({ mood, label, size = 112 }: { mood: Mood; label: string; size?: number }) {
+/** Outfits unlock with level: headband (2), cape (3), crown (5), glow (7). */
+export const OUTFITS = [
+  { level: 1, name: 'Plain coin' },
+  { level: 2, name: 'Adventurer headband' },
+  { level: 3, name: 'Hero’s cape' },
+  { level: 5, name: 'Golden crown' },
+  { level: 7, name: 'Legend’s glow' },
+];
+
+export default function Coin({ mood, label, size = 112, outfit = 0 }: { mood: Mood; label: string; size?: number; outfit?: number }) {
   return (
     <span className={`coin coin-${mood}`} role="img" aria-label={label} style={{ width: size, height: size }} data-mood={mood}>
       <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
@@ -12,7 +21,9 @@ export default function Coin({ mood, label, size = 112 }: { mood: Mood; label: s
             <path d="M108 78l3 5 5 3-5 3-3 5-3-5-5-3 5-3z" />
           </g>
         )}
+        {outfit >= 7 && <circle cx="60" cy="62" r="56" className="coin-glow" />}
         <g className="coin-body">
+          {outfit >= 3 && <path className="coin-cape" d="M30 74 L14 114 Q60 104 106 114 L90 74 Z" />}
           {/* arm (waving, or folded when offended) */}
           {mood === 'wave' && <path className="coin-arm wave-arm" d="M92 62 q14 -8 16 -26" />}
           {mood === 'celebrate' && (
@@ -56,6 +67,13 @@ export default function Coin({ mood, label, size = 112 }: { mood: Mood; label: s
           {mood === 'celebrate' && <path d="M47 70 q13 16 26 0 z" className="coin-mouth" />}
           {mood === 'offended' && <path className="coin-arm" d="M30 80 q30 12 60 0" />}
           {mood === 'sigh' && <path className="coin-puff" d="M80 78 q8 -2 10 4 q6 -2 8 4 q-4 4 -10 2 q-6 2 -8 -4z" />}
+          {outfit >= 2 && outfit < 5 && (
+            <>
+              <path className="coin-band" d="M25 46 Q60 30 95 46 L94 54 Q60 38 26 54 Z" />
+              <path className="coin-band" d="M93 47 l14 -6 l-4 10 l6 6 l-15 -2 z" />
+            </>
+          )}
+          {outfit >= 5 && <path className="coin-crown" d="M36 28 L42 6 L52 20 L60 2 L68 20 L78 6 L84 28 Z" />}
         </g>
       </svg>
     </span>

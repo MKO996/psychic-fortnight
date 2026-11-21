@@ -435,8 +435,8 @@ try {
   // 15. Today: insights button, summary ring, upcoming payments, quick add
   {
     const page = await freshSample();
-    check('summary ring: £70 left', (await page.getByRole('img', { name: /£70 left until payday/ }).count()) === 1);
-    check('summary strip: next is rent', (await page.locator('.sum-strip').innerText()).includes('Rent £220'));
+    check('character sheet: 4 stats add up to £600', await page.getByRole('button', { name: /^Bills & essentials: £350\./ }).isVisible() && await page.getByRole('button', { name: /^Debt: £80\./ }).isVisible() && await page.getByRole('button', { name: /^Savings: £100\./ }).isVisible() && await page.getByRole('button', { name: /^Spending: £70\./ }).isVisible());
+    check('character sheet: next encounter is rent', (await page.locator('.sheet-next').innerText()).includes('Rent £220'));
     const up = await page.locator('.up-list').innerText();
     check('upcoming: rent, phone, card, wage in date order', /Rent[\s\S]*Phone bill[\s\S]*Credit card[\s\S]*Weekly wage/.test(up));
     await page.screenshot({ path: `${SHOTS}/12-today-new-360.png`, fullPage: true });
@@ -506,11 +506,13 @@ try {
     const before = await xp();
     await page.getByTestId('checkin').getByRole('button', { name: 'Checked today' }).click();
     check('XP pop after check-in', /\+\d+ XP/.test(await page.getByTestId('xp-pop').innerText()));
-    check('streak lit today', !(await hud.getAttribute('aria-label')).includes('check in to keep it going') && await page.locator('.hud-streak.lit').isVisible());
+    check('streak lit today', !(await hud.getAttribute('aria-label')).includes('check in to keep it going') && await page.locator('.sheet-streak.lit').isVisible());
     await page.getByRole('button', { name: 'Nothing spent today' }).click();
     check('quest 2 done with Nothing spent', await page.getByTestId('quest-log').evaluate((el) => el.classList.contains('done')));
     await page.getByRole('button', { name: 'Mark Rent paid, £220' }).click();
     check('all quests done', await page.getByRole('heading', { name: 'All quests done!' }).isVisible());
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: `${SHOTS}/16-quests-done-360.png`, fullPage: false, clip: { x: 0, y: 0, width: 360, height: 780 } });
     const after = await xp();
     check('XP grew from habits', after !== before || (await hud.getAttribute('aria-label')).includes('Level'));
     check('money figure unchanged by the game: still £10.00', (await text(page, '[data-testid=safe-today]')) === '£10.00');
@@ -523,6 +525,7 @@ try {
     check('undo takes XP back', withoutRent < withRent, `${withRent} → ${withoutRent}`);
     check('trophies: badges earned and locked', (await page.locator('.badge-tile.earned').count()) > 0 && (await page.locator('.badge-tile.locked').count()) > 0);
     check('trophies: debt badge still locked', (await page.getByTestId('badge-debt').innerText()).includes('Make an extra debt payment'));
+    check('outfits: crown unlocked at level 5, glow locked', (await page.getByTestId('outfit-5').innerText()).includes('Wearing now') && (await page.getByTestId('outfit-7').innerText()).includes('Unlocks at level 7'));
     await page.screenshot({ path: `${SHOTS}/15-trophies-360.png`, fullPage: true });
     // Insights unlock a badge
     await page.getByRole('navigation').getByRole('button', { name: 'Today' }).click();
@@ -541,7 +544,7 @@ try {
     }
     await page.context().close();
     const rm = await freshSample({ reducedMotion: 'reduce' });
-    check('reduced motion: HUD bar and quest pop still', (await rm.locator('.hud-fill').evaluate((el) => getComputedStyle(el).transitionDuration)) === '0s');
+    check('reduced motion: HUD bar and quest pop still', (await rm.locator('.xpbar-fill').evaluate((el) => getComputedStyle(el).transitionDuration)) === '0s');
     await rm.getByTestId('checkin').getByRole('button', { name: 'Checked today' }).click();
     check('reduced motion: XP still shown in text', /\+\d+ XP/.test(await rm.getByTestId('xp-pop').innerText()));
     await rm.context().close();

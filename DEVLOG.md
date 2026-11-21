@@ -146,3 +146,44 @@ What we did **not** copy: their look, the gems or streak currency, and any brand
 - Should levels unlock something useful, such as new coin outfits or themes, rather than only titles?
 
 **Housekeeping (same session):** while this work was in progress, another project, **Rungs** (a word-ladder game in `rungs/`), was merged into this branch. I put this session's commit on top of it; no LEFT files were touched. Because Vitest then also ran Rungs' Jest tests, `vite.config.ts` now limits LEFT's unit tests to `src/**/*.test.ts`.
+
+---
+
+## 5. Game redesign: RPG character sheet (21 Nov 2026)
+
+**Feedback:** "I don't like the first design." I offered four directions with mock-ups (journey map, arcade, cosy pet, character sheet). **Mahdi chose the character sheet (RPG).**
+
+**Added**
+- `src/components/CharacterSheet.tsx`: Today is now your **character sheet**, a dark navy panel with a gold trim:
+  - Header: coin avatar (wearing its outfit), name, "Lv 5 · Bill Boss", XP bar, streak flame. Tap → Trophies.
+  - **Safe to spend today**, still the single big figure at the top, with £ left until payday and the payday date.
+  - **Your £600, split into 4 stats**, each showing its plain name first and its game name second:
+    - 🛡 Bills & essentials (Shield)
+    - ⚔ Debt (Attack)
+    - 💎 Savings (Treasure)
+    - ⚡ Spending (Stamina)
+
+    The bars fill to each stat's share of your cash. Tapping a stat opens its breakdown, the same as tapping a pot before. In a shortfall, the shield shows "cracked" and "£50 short".
+  - 🍞 **Groceries left** (Supplies), its own labelled amount.
+  - **Next encounter:** the next payment due.
+- **Coin outfits** that unlock with levels: headband (Lv 2), hero's cape (Lv 3), golden crown (Lv 5), legend's glow (Lv 7). Shown in the avatar, the strip and a new **Outfits** section in Trophies.
+- **Quest cards:** the three daily quests are now cards labelled "Quest". They **flip over** to a gold ✓ side when done. With Reduce motion they switch with no flip.
+- **Compact character strip** at the top of Plan, Goals and Trophies.
+- **Theme:** parchment background, storybook serif headings, gold primary buttons, a dark navy tab bar with gold for the active tab, and a purple insights card styled as an oracle.
+
+**Removed**
+- The first game look: the plain XP bar across the top of Today, the green chunky buttons, and the vertical quest checklist.
+- `Pots.tsx` (four jars) and `Summary.tsx` (ring + bars): the four stats now do both jobs, so Today has less repetition. Their old CSS was deleted too.
+
+**Why**
+- **Plain words before game words** ("Bills & essentials" before "Shield"), so someone new to budgeting is never confused by the metaphor.
+- **One panel instead of three** (sheet replaces hero + summary + pots): less scrolling and one clear place to look.
+- **The maths is untouched.** Every figure and test from the spec table still matches.
+
+**Bug found:** an old `.pot-fill` rule (absolute positioning) pushed the new stat bars over the sample banner and blocked its buttons. Deleting the leftover pot CSS fixed it.
+
+**Checked:** 59 unit tests and 130 browser checks: stats add up to £600, next encounter, outfits unlocked or locked, the cards flipping, shortfall, 200% text, reduced motion, offline.
+
+**Open questions**
+- Should the stats use game names first once someone has used LEFT for a while?
+- Should outfits be choosable (wear any unlocked one) rather than automatic?

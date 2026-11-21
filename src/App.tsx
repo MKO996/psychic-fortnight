@@ -292,7 +292,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {tab && <Hud game={game!} onOpen={() => go({ name: 'trophies' })} />}
+      {tab && tab !== 'today' && <Hud game={game!} name={plan!.profile?.name || (kind === 'sample' ? 'Sam' : 'You')} onOpen={() => go({ name: 'trophies' })} />}
       <main id="main" ref={mainRef} tabIndex={-1}>
         {screen.name === 'today' && <Today />}
         {screen.name === 'talk' && <Talk initial={screen.text} />}
@@ -311,7 +311,7 @@ export default function App() {
         <nav className="tabs" aria-label="Main">
           {(['today', 'plan', 'goals', 'trophies'] as const).map((t) => (
             <button key={t} type="button" aria-current={tab === t ? 'page' : undefined} onClick={() => go({ name: t })}>
-              <span aria-hidden="true" className="tab-icon">{t === 'today' ? '🏠' : t === 'plan' ? '🗺️' : t === 'goals' ? '🎯' : '🏆'}</span>
+              <span aria-hidden="true" className="tab-icon">{t === 'today' ? '🪙' : t === 'plan' ? '📜' : t === 'goals' ? '💎' : '🏆'}</span>
               {t === 'today' ? 'Today' : t === 'plan' ? 'Plan' : t === 'goals' ? 'Goals' : 'Trophies'}
             </button>
           ))}
