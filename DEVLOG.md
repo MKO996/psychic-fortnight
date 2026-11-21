@@ -144,3 +144,5 @@ What we did **not** copy: their look, the gems or streak currency, and any brand
 **Open questions**
 - Should a missed day be forgiven once a week (a "rest day"), so streaks feel less stressful?
 - Should levels unlock something useful, such as new coin outfits or themes, rather than only titles?
+
+**Housekeeping (same session):** while this work was in progress, another project, **Rungs** (a word-ladder game in `rungs/`), was merged into this branch. I put this session's commit on top of it; no LEFT files were touched. Because Vitest then also ran Rungs' Jest tests, `vite.config.ts` now limits LEFT's unit tests to `src/**/*.test.ts`.
