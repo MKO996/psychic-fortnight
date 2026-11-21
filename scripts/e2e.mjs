@@ -549,6 +549,28 @@ try {
     check('reduced motion: XP still shown in text', /\+\d+ XP/.test(await rm.getByTestId('xp-pop').innerText()));
     await rm.context().close();
   }
+
+  // 17. A/B usability test: plain names first (A) vs game names first (B)
+  {
+    const page = await newPage();
+    await page.goto(URL + '?v=b');
+    await page.getByRole('button', { name: /Try the demo/ }).click();
+    await page.getByTestId('safe-today').waitFor();
+    check('version B via link: chip shows B', (await page.locator('.mode-chip').innerText()).includes('B'));
+    check('version B: Shield shown first', (await page.locator('.stat-bills .stat-name b').innerText()) === 'Shield' && await page.getByRole('button', { name: /^Shield, Bills & essentials: £350/ }).isVisible());
+    check('version B: next encounter wording', (await page.locator('.sheet-next').innerText()).startsWith('Next encounter'));
+    check('version B: same money figures', (await text(page, '[data-testid=safe-today]')) === '£10.00' && (await text(page, '[data-testid=left-total]')) === '£70');
+    await page.screenshot({ path: `${SHOTS}/17-version-B-360.png`, clip: { x: 0, y: 0, width: 360, height: 780 } });
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await page.getByText('Version A: plain names first').click();
+    await page.getByRole('button', { name: '‹ Back' }).click();
+    check('switch to A in Settings: Bills & essentials first', (await page.locator('.stat-bills .stat-name b').innerText()) === 'Bills & essentials' && (await page.locator('.sheet-next').innerText()).startsWith('Next payment'));
+    await page.reload();
+    await page.getByTestId('safe-today').waitFor();
+    check('version choice survives refresh', (await page.locator('.mode-chip').innerText()).includes('A'));
+    await page.screenshot({ path: `${SHOTS}/18-version-A-360.png`, clip: { x: 0, y: 0, width: 360, height: 780 } });
+    await page.context().close();
+  }
 } catch (e) {
   check('script error', false, e.message.split('\n').slice(0, 3).join(' | '));
 } finally {

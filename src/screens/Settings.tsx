@@ -19,6 +19,14 @@ export default function SettingsScreen() {
         <Toggle label="Reduce motion" hint="Pots and bars appear without moving." checked={settings.reduceMotion} onChange={(b) => setSettings({ ...settings, reduceMotion: b })} />
         <Toggle label="Celebrations" hint="A short message when you pay a bill or save." checked={settings.celebrations} onChange={(b) => setSettings({ ...settings, celebrations: b })} />
       </section>
+      <section className="card" aria-labelledby="ab-h">
+        <h2 id="ab-h">Usability test: stat names</h2>
+        <p className="hint">Two versions of the character sheet for testing with people. The money figures are the same in both.</p>
+        <Choice legend="Which version?" value={settings.statNames} onChange={(v) => setSettings({ ...settings, statNames: v })} options={[
+          { value: 'plain', label: 'Version A: plain names first', hint: 'Bills & essentials, with Shield underneath' },
+          { value: 'game', label: 'Version B: game names first', hint: 'Shield, with Bills & essentials underneath' },
+        ]} />
+      </section>
       <section className="card">
         <h2>About you</h2>
         <p className="hint">What matters most, who you live with and what you often spend on. Used to order your insights and fill Quick add.</p>

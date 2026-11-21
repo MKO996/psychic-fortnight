@@ -187,3 +187,25 @@ What we did **not** copy: their look, the gems or streak currency, and any brand
 **Open questions**
 - Should the stats use game names first once someone has used LEFT for a while?
 - Should outfits be choosable (wear any unlocked one) rather than automatic?
+
+---
+
+## 6. A/B test: plain names first vs game names first (21 Nov 2026)
+
+**Idea (Mahdi):** game names may be easy for Mahdi but hard for others, so test both with people.
+
+**Added**
+- Setting `statNames`: **Version A** shows plain names first ("Bills & essentials", with "Shield" small underneath). **Version B** shows game names first ("Shield", with "Bills & essentials" underneath). It also switches "Groceries left"/"Supplies left" and "Next payment"/"Next encounter".
+- **Link switch:** `?v=a` or `?v=b`, so one link can be shared per version. It applies once and is then removed from the address.
+- Settings → *Usability test: stat names*.
+- The top chip shows **Sample · A** or **Sample · B**, so the facilitator always knows which version is on screen.
+- Screen readers hear both names in either version, for example "Shield, Bills & essentials: £350".
+- `docs/ab-test.md`: 5-minute script, 5 task questions, 3 follow-up questions, a record sheet and a decision rule.
+
+**Changed:** the top bar is a little tighter, so "Sample · B" and ⚙ still fit on one line at 360px.
+
+**Why:** a real test with 5+ people per version replaces our guesswork. Plain-first stays the default until the results say otherwise.
+
+**Bug found:** after switching in Settings, a refresh brought the link's version back. Fixed by removing `?v=` from the address once it's been applied.
+
+**Checked:** 59 unit tests and 136 browser checks, including both versions, same figures in each, switching, and surviving refresh.

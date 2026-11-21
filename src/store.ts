@@ -7,6 +7,24 @@ export interface Settings {
   largeText: boolean;
   reduceMotion: boolean;
   celebrations: boolean;
+  /** A/B test: 'plain' = Version A (Bills & essentials first), 'game' = Version B (Shield first). */
+  statNames: 'plain' | 'game';
+}
+
+/** ?v=a or ?v=b in the address sets the test version, so a facilitator can share one link per version. */
+function versionFromUrl(): Settings['statNames'] | null {
+  try {
+    const params = new URLSearchParams(location.search);
+    const v = params.get('v')?.toLowerCase();
+    if (!v) return null;
+    // Apply once, then tidy the address so a later change in Settings isn't overridden on refresh.
+    params.delete('v');
+    const q = params.toString();
+    history.replaceState(null, '', location.pathname + (q ? `?${q}` : '') + location.hash);
+    return v === 'a' ? 'plain' : v === 'b' ? 'game' : null;
+  } catch {
+    return null;
+  }
 }
 
 function read<T>(key: string): T | null {
@@ -37,7 +55,9 @@ export const store = {
   saveActive: (a: 'sample' | 'personal' | null) => write(KEYS.active, a),
   loadSettings: (): Settings => {
     const prefersReduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    return { largeText: false, reduceMotion: prefersReduced, celebrations: true, ...(read<Partial<Settings>>(KEYS.settings) ?? {}) };
+    const saved = { largeText: false, reduceMotion: prefersReduced, celebrations: true, statNames: 'plain' as const, ...(read<Partial<Settings>>(KEYS.settings) ?? {}) };
+    const fromUrl = versionFromUrl();
+    return fromUrl ? { ...saved, statNames: fromUrl } : saved;
   },
   saveSettings: (s: Settings) => write(KEYS.settings, s),
   loadReminders: (): ReminderState => ({ ...defaultReminders, ...(read<Partial<ReminderState>>(KEYS.reminders) ?? {}) }),

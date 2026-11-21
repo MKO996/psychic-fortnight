@@ -33,6 +33,9 @@ export default function CharacterSheet() {
   const total = Math.max(1, s.pots.bills + s.pots.debt + s.pots.savings + s.pots.spending);
   const groceries = s.required.find((r) => r.kind === 'essential' && r.id === 'groceries');
   const ready = s.status !== 'incomplete';
+  const gameFirst = settings.statNames === 'game';
+  const statTitle = (st: (typeof STATS)[number]) => (gameFirst ? st.game : st.label);
+  const statSub = (st: (typeof STATS)[number]) => (gameFirst ? st.label : st.game);
 
   return (
     <section className="sheet" aria-labelledby="safe-h">
@@ -88,9 +91,9 @@ export default function CharacterSheet() {
               const short = st.key === 'bills' && s.status === 'short';
               return (
                 <li key={st.key}>
-                  <button type="button" className={`stat pot stat-${st.key}`} onClick={() => setOpen(st.key)} aria-label={`${st.label}: ${money(v)}. Show breakdown`}>
+                  <button type="button" className={`stat pot stat-${st.key}`} onClick={() => setOpen(st.key)} aria-label={gameFirst ? `${st.game}, ${st.label}: ${money(v)}. Show breakdown` : `${st.label}: ${money(v)}. Show breakdown`}>
                     <span className="stat-icon" aria-hidden="true">{st.icon}</span>
-                    <span className="stat-name" aria-hidden="true"><b>{st.label}</b><small>{st.game}{short ? ' · cracked' : ''}</small></span>
+                    <span className="stat-name" aria-hidden="true"><b>{statTitle(st)}</b><small>{statSub(st)}{short ? ' · cracked' : ''}</small></span>
                     <span className="stat-val amount" aria-hidden="true">{money(v)}</span>
                     <span className="stat-track" aria-hidden="true">
                       <span className="stat-fill pot-fill" style={{ width: filled ? `${Math.max(Math.round((v / total) * 100), v > 0 ? 3 : 0)}%` : '0%', transitionDelay: `${i * 140}ms` }} />
@@ -104,18 +107,18 @@ export default function CharacterSheet() {
           {groceries && (
             <div className="supplies" role="group" aria-labelledby="gro-h">
               <span className="stat-icon" aria-hidden="true">🍞</span>
-              <span className="stat-name"><b id="gro-h">Groceries left</b><small>Supplies · {money(groceries.done)} spent of {money(groceries.full)}</small></span>
+              <span className="stat-name"><b id="gro-h">{gameFirst ? 'Supplies left' : 'Groceries left'}</b><small>{gameFirst ? 'Groceries' : 'Supplies'} · {money(groceries.done)} spent of {money(groceries.full)}</small></span>
               <span className="stat-val amount" data-testid="groceries-left">{money(groceries.reserved)}</span>
               <span className="stat-track" aria-hidden="true"><span className="stat-fill supplies-fill" style={{ width: `${groceries.full ? Math.round((groceries.reserved / groceries.full) * 100) : 0}%` }} /></span>
             </div>
           )}
           {groceries && groceries.done > groceries.full && <p className="sheet-note">Groceries are {money(groceries.done - groceries.full)} over: that comes out of your spending money.</p>}
-          {s.nearestDue && <p className="sheet-next">Next encounter: <b>{s.nearestDue.name} {money(s.nearestDue.reserved)}</b>{s.nearestDue.dueDate && ` · ${shortDate(s.nearestDue.dueDate)} (${relativeDay(s.nearestDue.dueDate, today)})`}</p>}
+          {s.nearestDue && <p className="sheet-next">{gameFirst ? 'Next encounter' : 'Next payment'}: <b>{s.nearestDue.name} {money(s.nearestDue.reserved)}</b>{s.nearestDue.dueDate && ` · ${shortDate(s.nearestDue.dueDate)} (${relativeDay(s.nearestDue.dueDate, today)})`}</p>}
         </>
       )}
 
       {open && (
-        <Modal title={STATS.find((x) => x.key === open)!.label} onClose={() => setOpen(null)}>
+        <Modal title={gameFirst ? `${STATS.find((x) => x.key === open)!.game}: ${STATS.find((x) => x.key === open)!.label}` : STATS.find((x) => x.key === open)!.label} onClose={() => setOpen(null)}>
           <StatBreakdown k={open} />
           <button type="button" className="btn primary" onClick={() => setOpen(null)}>Close</button>
         </Modal>

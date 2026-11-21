@@ -273,7 +273,7 @@ export default function App() {
       <a className="skip" href="#main">Skip to content</a>
       <header className="topbar">
         <button className="brand" onClick={() => go({ name: 'welcome' })} aria-label="LEFT home: choose sample or your plan">LEFT</button>
-        <span className={`mode-chip ${kind}`}>{kind === 'sample' ? 'Sample' : 'My plan'}</span>
+        <span className={`mode-chip ${kind}`}>{kind === 'sample' ? 'Sample' : 'My plan'}{kind === 'sample' && <span className="ab-tag" aria-label={`test version ${settings.statNames === 'game' ? 'B' : 'A'}`}> · {settings.statNames === 'game' ? 'B' : 'A'}</span>}</span>
         <button type="button" className="icon-btn" aria-pressed={settings.largeText} onClick={() => setSettingsState({ ...settings, largeText: !settings.largeText })}>
           <span aria-hidden="true" className="aa">Aa</span>
           <span className="icon-label">Large text</span>
