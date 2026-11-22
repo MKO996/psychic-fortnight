@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fiido-d11-toolkit"
+version = "0.1.0"
+description = "Open-source, read-first BLE diagnostics for Fiido e-bikes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["bleak>=0.22,<1.0"]
+
+[project.scripts]
+fiido-d11 = "fiido_d11.cli:main"
+
+[tool.setuptools]
+packages = ["fiido_d11"]
