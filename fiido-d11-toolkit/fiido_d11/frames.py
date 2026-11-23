@@ -150,3 +150,15 @@ def decode_state(reg: int, payload: bytes) -> dict:
     elif reg == 0x04 and len(payload) >= 1:
         labels["gear_count"] = payload[0]    # 5 for "Maximum Gear Mode: Five"
     return labels
+
+
+def build_read(reg: int, param: int = 0x00) -> bytes:
+    """A read request: 46 64 55 <reg> <param> <xor>. Changes nothing on the bike."""
+    body = bytes([0x46, 0x64, 0x55, reg & 0xFF, param & 0xFF])
+    return body + bytes([xor8(body)])
+
+
+def build_set(reg: int, value: bytes) -> bytes:
+    """A set command: 46 64 FF <reg> <value...> <xor>. THIS WRITES to the bike."""
+    body = bytes([0x46, 0x64, 0xFF, reg & 0xFF]) + bytes(value)
+    return body + bytes([xor8(body)])

@@ -141,6 +141,81 @@ async def cmd_poll(args: argparse.Namespace) -> int:
     return 0
 
 
+async def cmd_probe(args: argparse.Namespace) -> int:
+    """Read-only reconnaissance: ask each register in a range to report itself.
+
+    Sends only read requests (type 0x55), which change nothing. Flags any reply
+    byte equal to 0x19 (= 25) as a speed-limit candidate.
+    """
+    print(f"Connecting to {args.address} ...")
+    async with Link(args.address) as client:
+        write_c, notify_c = await find_control_chars(client)
+        if write_c is None or notify_c is None:
+            print("Could not find the ffe2/ffe1 control characteristics. Run 'info'.")
+            return 1
+        found: dict = {}
+
+        def handle(sender, data: bytearray) -> None:
+            parsed = frames.split_reply(bytes(data))
+            if parsed:
+                typ, reg, payload, ok = parsed
+                found[reg] = (payload, ok)
+
+        await client.start_notify(notify_c, handle)
+        print(f"Reading registers 0x{args.start:02x}..0x{args.end:02x} "
+              f"(read-only, param=0x{args.param:02x}). Please wait.\n")
+        for reg in range(args.start, args.end + 1):
+            await write_frame(client, write_c, frames.build_read(reg, args.param),
+                              response=True)
+            await asyncio.sleep(0.12)
+        await asyncio.sleep(1.0)
+
+    if not found:
+        print("No register replied. The bike may want a different --param for")
+        print("unknown registers; the known ones use 0x1c/0xd4/0x05/0x60.")
+        return 1
+    print(f"{len(found)} register(s) answered:\n")
+    for reg in sorted(found):
+        payload, ok = found[reg]
+        at = [i for i, b in enumerate(payload) if b == 0x19]
+        flag = f"   <-- holds 0x19 (25) at offset {at}" if at else ""
+        print(f"  reg 0x{reg:02x} [{'ok ' if ok else 'BAD'}]  {payload.hex(' ')}{flag}")
+    print("\nA register that holds 0x19 (=25) is your speed-limit candidate.")
+    return 0
+
+
+async def cmd_set_register(args: argparse.Namespace) -> int:
+    """Write a value to one register (46 64 FF <reg> <value> <xor>). THIS WRITES."""
+    try:
+        value = bytes.fromhex(args.value.replace(":", " "))
+    except ValueError:
+        print("Could not parse --value. Give bytes like '1e' or '1e 00'.")
+        return 1
+    frame = frames.build_set(args.reg, value)
+    print(f"CANDIDATE set frame: {frame.hex(' ')}")
+    print(f"  register 0x{args.reg:02x} <- {value.hex(' ')}  (checksum appended)")
+    print("  Keep the register's ORIGINAL value (from 'probe') so you can revert.\n")
+    if not _require_optin(args):
+        return 1
+    async with Link(args.address) as client:
+        write_c, notify_c = await find_control_chars(client)
+        if write_c is None or notify_c is None:
+            print("Could not find the ffe2/ffe1 characteristics. Run 'info'.")
+            return 1
+
+        def handle(sender, data: bytearray) -> None:
+            parsed = frames.split_reply(bytes(data))
+            if parsed and parsed[0] == 0xAA and parsed[1] == args.reg:
+                print(f"  bike echoed: reg 0x{parsed[1]:02x} <- {parsed[2].hex(' ')}")
+
+        await client.start_notify(notify_c, handle)
+        await write_frame(client, write_c, frame, response=True)
+        await asyncio.sleep(1.5)
+    print("Sent. If the bike echoed the new value above, it accepted the write.")
+    print("Verify with 'poll', then test cautiously. Revert by setting the old value.")
+    return 0
+
+
 def cmd_decode(args: argparse.Namespace) -> int:
     text = open(args.log, encoding="utf-8").read()
     parsed = frames.parse_log_frames(text)
@@ -296,6 +371,20 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--once", dest="loop", action="store_false",
                    help="send one round of reads instead of looping")
     s.set_defaults(func=cmd_poll, is_async=True, loop=True)
+
+    s = sub.add_parser("probe", help="read-only scan of a register range (find the limit)")
+    s.add_argument("--address", required=True)
+    s.add_argument("--start", type=lambda x: int(x, 0), default=0x00)
+    s.add_argument("--end", type=lambda x: int(x, 0), default=0x40)
+    s.add_argument("--param", type=lambda x: int(x, 0), default=0x00)
+    s.set_defaults(func=cmd_probe, is_async=True)
+
+    s = sub.add_parser("set-register", help="write one register (gated) 46 64 FF ..")
+    s.add_argument("--address", required=True)
+    s.add_argument("--reg", required=True, type=lambda x: int(x, 0))
+    s.add_argument("--value", required=True, help="hex bytes, e.g. '1e'")
+    s.add_argument("--unsafe-writes", action="store_true")
+    s.set_defaults(func=cmd_set_register, is_async=True)
 
     s = sub.add_parser("decode", help="annotate a saved log")
     s.add_argument("--log", required=True)
