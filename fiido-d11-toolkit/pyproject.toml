@@ -9,7 +9,7 @@ description = "Open-source, read-first BLE diagnostics for Fiido e-bikes"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-dependencies = ["bleak>=0.22,<1.0"]
+dependencies = ["bleak>=0.22"]
 
 [project.scripts]
 fiido-d11 = "fiido_d11.cli:main"
