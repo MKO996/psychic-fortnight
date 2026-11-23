@@ -142,10 +142,11 @@ async def cmd_poll(args: argparse.Namespace) -> int:
 
 
 async def cmd_probe(args: argparse.Namespace) -> int:
-    """Read-only reconnaissance: ask each register in a range to report itself.
+    """Read-only memory dump.
 
-    Sends only read requests (type 0x55), which change nothing. Flags any reply
-    byte equal to 0x19 (= 25) as a speed-limit candidate.
+    The D11 read command is (count, offset) into ONE memory buffer:
+    46 64 55 <count> <offset> <xor>. This reads <count> bytes at a series of
+    offsets, assembles them, and prints a hex map you can search. Reads only.
     """
     print(f"Connecting to {args.address} ...")
     async with Link(args.address) as client:
@@ -153,34 +154,44 @@ async def cmd_probe(args: argparse.Namespace) -> int:
         if write_c is None or notify_c is None:
             print("Could not find the ffe2/ffe1 control characteristics. Run 'info'.")
             return 1
-        found: dict = {}
+        mem: dict = {}
 
         def handle(sender, data: bytearray) -> None:
             parsed = frames.split_reply(bytes(data))
-            if parsed:
-                typ, reg, payload, ok = parsed
-                found[reg] = (payload, ok)
+            if parsed and parsed[2]:
+                payload = parsed[2]
+                base = payload[0]            # the offset the bike echoes back
+                for i, b in enumerate(payload[1:]):
+                    mem[base + i] = b
 
         await client.start_notify(notify_c, handle)
-        print(f"Reading registers 0x{args.start:02x}..0x{args.end:02x} "
-              f"(read-only, param=0x{args.param:02x}). Please wait.\n")
-        for reg in range(args.start, args.end + 1):
-            await write_frame(client, write_c, frames.build_read(reg, args.param),
+        count = args.count
+        print(f"Dumping memory 0x{args.start:02x}..0x{args.end:02x} in "
+              f"{count}-byte reads (read-only). Please wait.\n")
+        for off in range(args.start, args.end, count):
+            await write_frame(client, write_c, frames.build_read(count, off),
                               response=True)
             await asyncio.sleep(0.12)
         await asyncio.sleep(1.0)
 
-    if not found:
-        print("No register replied. The bike may want a different --param for")
-        print("unknown registers; the known ones use 0x1c/0xd4/0x05/0x60.")
+    if not mem:
+        print("Nothing came back.")
         return 1
-    print(f"{len(found)} register(s) answered:\n")
-    for reg in sorted(found):
-        payload, ok = found[reg]
-        at = [i for i, b in enumerate(payload) if b == 0x19]
-        flag = f"   <-- holds 0x19 (25) at offset {at}" if at else ""
-        print(f"  reg 0x{reg:02x} [{'ok ' if ok else 'BAD'}]  {payload.hex(' ')}{flag}")
-    print("\nA register that holds 0x19 (=25) is your speed-limit candidate.")
+    lo, hi = min(mem), max(mem)
+    print(f"Memory 0x{lo:02x}..0x{hi:02x}:")
+    for row in range(lo - (lo % 16), hi + 1, 16):
+        cells = " ".join(f"{mem[o]:02x}" if o in mem else "--"
+                          for o in range(row, row + 16))
+        print(f"  {row:04x}:  {cells}")
+    # Value 25 (0x19), ignoring the 0x0f..0x19 counting/index table.
+    hits = [o for o, b in mem.items() if b == 0x19 and not (0x0F <= o <= 0x19)]
+    print()
+    if hits:
+        print("Lone 25 (0x19) at offset(s): " + ", ".join(f"0x{o:02x}" for o in sorted(hits)))
+        print("Those are speed-limit candidates - but confirm with Route A before writing.")
+    else:
+        print("No lone 25 outside the index table. The limit is probably set only")
+        print("through Debug Mode - capture that write (Route A) to find its offset.")
     return 0
 
 
@@ -372,11 +383,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="send one round of reads instead of looping")
     s.set_defaults(func=cmd_poll, is_async=True, loop=True)
 
-    s = sub.add_parser("probe", help="read-only scan of a register range (find the limit)")
+    s = sub.add_parser("probe", help="read-only memory dump (hunt for the limit)")
     s.add_argument("--address", required=True)
     s.add_argument("--start", type=lambda x: int(x, 0), default=0x00)
-    s.add_argument("--end", type=lambda x: int(x, 0), default=0x40)
-    s.add_argument("--param", type=lambda x: int(x, 0), default=0x00)
+    s.add_argument("--end", type=lambda x: int(x, 0), default=0x100)
+    s.add_argument("--count", type=lambda x: int(x, 0), default=0x20)
     s.set_defaults(func=cmd_probe, is_async=True)
 
     s = sub.add_parser("set-register", help="write one register (gated) 46 64 FF ..")
