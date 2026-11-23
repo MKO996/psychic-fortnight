@@ -134,3 +134,18 @@ class Link:
                 await self._client.disconnect()
             except Exception:  # noqa: BLE001 - disconnect best-effort
                 pass
+
+
+# Control characteristics on the D11, matched by UUID suffix so the Nordic DFU
+# characteristic (service fe59) can never be selected by accident.
+async def find_control_chars(client):
+    """Return (write_char ffe2, notify_char ffe1), or (None, None)."""
+    write_c = notify_c = None
+    for service in client.services:
+        for char in service.characteristics:
+            u = char.uuid.lower()
+            if u.endswith("ffe2"):
+                write_c = char
+            elif u.endswith("ffe1"):
+                notify_c = char
+    return write_c, notify_c

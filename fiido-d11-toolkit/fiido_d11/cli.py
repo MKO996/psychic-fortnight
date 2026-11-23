@@ -22,7 +22,7 @@ import asyncio
 import sys
 
 from . import __version__, crc, frames
-from .ble import Link, dump_gatt, notify_handles, scan, write_frame
+from .ble import Link, dump_gatt, find_control_chars, notify_handles, scan, write_frame
 
 LEGAL_LIMIT_KMH = 25  # UK / EU assisted-speed limit for a legal e-bike.
 
@@ -95,6 +95,45 @@ async def cmd_monitor(args: argparse.Namespace) -> int:
         finally:
             if logfile:
                 logfile.close()
+    return 0
+
+
+async def cmd_poll(args: argparse.Namespace) -> int:
+    """Ask the bike for live state by replaying the app's own read requests.
+
+    Read-only in effect: every frame sent is type 0x55 (a read). None of them
+    changes a setting. This is the 'access the bike' path.
+    """
+    print(f"Connecting to {args.address} ...")
+    async with Link(args.address) as client:
+        write_c, notify_c = await find_control_chars(client)
+        if write_c is None or notify_c is None:
+            print("Could not find the ffe2/ffe1 control characteristics. Run 'info'.")
+            return 1
+
+        def handle(sender, data: bytearray) -> None:
+            parsed = frames.split_reply(bytes(data))
+            if parsed is None:
+                print(f"  frame      {bytes(data).hex(' ')}")
+                return
+            typ, reg, payload, ok = parsed
+            flag = "ok " if ok else "BAD"
+            print(f"  type=0x{typ:02x} reg=0x{reg:02x} [{flag}]  {payload.hex(' ')}")
+
+        await client.start_notify(notify_c, handle)
+        print("Sending the app's own read requests (type 0x55, read-only). Ctrl+C to stop.\n")
+        try:
+            while True:
+                for frame in frames.KNOWN_READ_FRAMES:
+                    # response=True matches the app's "Write Request".
+                    await write_frame(client, write_c, frame, response=True)
+                    await asyncio.sleep(0.25)
+                if not args.loop:
+                    await asyncio.sleep(0.6)
+                    break
+                await asyncio.sleep(0.5)
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            print("\nStopped.")
     return 0
 
 
@@ -247,6 +286,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--address", required=True)
     s.add_argument("--log", default=None, help="append frames to this file")
     s.set_defaults(func=cmd_monitor, is_async=True)
+
+    s = sub.add_parser("poll", help="ask the bike for live state (read-only, type 0x55)")
+    s.add_argument("--address", required=True)
+    s.add_argument("--once", dest="loop", action="store_false",
+                   help="send one round of reads instead of looping")
+    s.set_defaults(func=cmd_poll, is_async=True, loop=True)
 
     s = sub.add_parser("decode", help="annotate a saved log")
     s.add_argument("--log", required=True)

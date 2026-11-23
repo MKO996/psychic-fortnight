@@ -38,10 +38,53 @@ Verified by running this toolkit's `scan` and `info` against an actual
 - Consequence: passive `monitor` alone cannot learn this bike's protocol. You
   need the exact poll bytes first.
 
-**Open question: the exact poll/request bytes for the D11 are not yet known.**
-Get them the safe way — capture the official Fiido app talking to the bike once
-(Android "Bluetooth HCI snoop log", or iOS/macOS PacketLogger) and read its real
-messages — rather than guessing bytes at the controller.
+**Frame format (CONFIRMED — captured from the official app on a D11, V40):**
+
+```
+46 64 <type> <register> <data...> <xor>
+```
+
+- `46 64` — fixed header.
+- `<type>` — `0x55` read request (host→bike), `0xFF` set (host→bike),
+  `0xAA` reply (bike→host).
+- `<register>` — which value, e.g. `0x21` main state block, `0x06` serial/version
+  string, `0x04`, `0x08`, `0x01`.
+- `<xor>` — **checksum = XOR of every byte before it.** Verified on many frames,
+  reads and replies alike. (The toolkit's `calibrate-crc` also lands on `xor8`.)
+
+ATT value handles in the app's own traffic: writes go to **`0x0010`**, the bike
+notifies on **`0x0012`** — which are the value handles of the `ffe2` (write) and
+`ffe1` (notify) characteristics `info` lists. bleak addresses these by
+characteristic, so it targets them correctly.
+
+**Reads are a request/reply pair.** Host writes a `0x55` frame to `ffe2`; bike
+answers with a matching `0xAA` frame on `ffe1`. The bike does not stream
+unsolicited — no poll, no reply.
+
+Read requests captured verbatim from the app (safe to replay — they change
+nothing; this is what `poll` sends):
+
+| Host read request | Bike reply (example) | Meaning |
+|---|---|---|
+| `46 64 55 21 1C 4A` | `46 64 AA 21 1C 00 00 07 CB …` | main state block (~28 bytes) |
+| `46 64 55 06 D4 A5` | `46 64 AA 06 D4 30 31 32 33 34 35 5B` | serial/version (`30 31 32 33 34 35` = "012345") |
+| `46 64 55 04 05 76` | `46 64 AA 04 05 01 02 03 04 8D` | register 0x04 |
+| `46 64 55 08 60 1F` | `46 64 AA 08 60 20 28 00 00 00 00 00 34 DC` | register 0x08 |
+
+**Set (write) commands** use type `0xFF` and the bike echoes the value back:
+
+| Host set | Bike echo |
+|---|---|
+| `46 64 FF 01 25 50 A9` | `46 64 AA 01 25 50 FC` |
+
+Set `0x01` here carried value `25 50`. The meaning of each register's bytes
+(which is speed, battery, assist level, the speed-limit setting) still has to be
+read off by correlating `poll` output with known readings — that is the next
+decode step, and it is read-only.
+
+**How this was obtained:** by capturing the official iOS app with Apple's
+PacketLogger (iOS trace), filtering to the bike's address, and reading the
+plaintext ATT writes/notifications. No bytes were guessed at the controller.
 
 ## Where this comes from
 

@@ -47,6 +47,25 @@ def test_decode_unknown_framing():
     assert "No known framing" in d.note
 
 
+def test_xor_checksum_on_real_d11_frames():
+    # Frames captured from the official app on a real Fiido D11 (firmware V40).
+    for hexstr in [
+        "466455211c4a", "46645506d4a5", "466455040576", "46645508601f",
+        "4664ff012550a9", "4664aa012550fc", "4664aa0405010203048d",
+    ]:
+        assert frames.check_frame(bytes.fromhex(hexstr)), hexstr
+
+
+def test_known_read_frames_are_valid():
+    assert all(frames.check_frame(f) for f in frames.KNOWN_READ_FRAMES)
+
+
+def test_split_reply():
+    typ, reg, payload, ok = frames.split_reply(bytes.fromhex("4664aa0405010203048d"))
+    assert typ == 0xAA and reg == 0x04 and ok
+    assert payload == bytes.fromhex("0501020304")
+
+
 if __name__ == "__main__":
     passed = 0
     for name, fn in sorted(globals().items()):

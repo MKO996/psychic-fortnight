@@ -91,3 +91,44 @@ def decode(data: bytes) -> Decoded:
         note = "No known framing matched. Raw bytes only."
 
     return Decoded(note=note, fields=fields)
+
+
+# ---------------------------------------------------------------------------
+# CONFIRMED on a real Fiido D11 (firmware V40) by capturing the official app.
+# Frame:  46 64 <type> <register> <data...> <xor>
+#   type 0x55 = read request (host -> bike), 0xFF = set (host -> bike),
+#   0xAA = reply (bike -> host). The last byte is XOR of all bytes before it.
+# ---------------------------------------------------------------------------
+
+HEADER = bytes([0x46, 0x64])
+
+
+def xor8(data: bytes) -> int:
+    """Checksum used by the D11: XOR of every byte."""
+    x = 0
+    for b in data:
+        x ^= b
+    return x
+
+
+def check_frame(data: bytes) -> bool:
+    """True if the frame has the header and a valid trailing XOR checksum."""
+    return len(data) >= 4 and data[:2] == HEADER and xor8(data[:-1]) == data[-1]
+
+
+def split_reply(data: bytes):
+    """Return (type, register, payload, crc_ok) for a 46 64 .. frame, else None."""
+    if len(data) < 5 or data[:2] != HEADER:
+        return None
+    return data[2], data[3], data[4:-1], xor8(data[:-1]) == data[-1]
+
+
+# Read-request frames captured verbatim from the official app. Type 0x55 is a
+# read: replaying these asks the bike to report state and changes nothing. We
+# replay the exact bytes the app sent rather than construct new ones.
+KNOWN_READ_FRAMES = [
+    bytes.fromhex("466455211c4a"),  # register 0x21 - main state block (~28 bytes)
+    bytes.fromhex("46645506d4a5"),  # register 0x06 - serial/version string
+    bytes.fromhex("466455040576"),  # register 0x04
+    bytes.fromhex("46645508601f"),  # register 0x08
+]
