@@ -95,8 +95,21 @@ Register `0x04` byte `[0]` = gear count (`05` for "Maximum Gear Mode: Five").
 Register `0x06` = ASCII id string (`"012345"`).
 
 Still to pin down: which byte is true wheel speed (needs the wheel actually
-rolling fast enough to show on the display), and which register/byte holds the
-25 km/h speed-limit setting that Debug Mode edits. Both are read-only to find.
+rolling fast enough to show on the display).
+
+**Memory model.** Reads are `(count, offset)` windows into one linear buffer, not
+separate registers: `46 64 55 <count> <offset> <xor>` returns `<count>` bytes
+from `<offset>`. A full dump of `0x00`–`0xFF` (`probe`) shows: a counting/index
+table at `0x00`–`0x1A`, live telemetry around `0x1C`–`0x38`, config near `0x60`,
+and the serial + device name at `0xD4` (`"012345"` then `"Fiido_D11"`).
+
+**Speed limit — not a readable byte.** The value `25` (`0x19`) appears nowhere
+in the dump except inside the `0x10` index table. The 25 km/h cutoff is not
+stored as a writable value in the readable memory; it is enforced by firmware
+and gated behind the app's Debug Mode "command code", which Fiido no longer
+distributes. Without that code, or a capture of the app actually performing the
+change, there is no safe target to write — and blind-writing offsets risks
+bricking the controller. Recorded as a dead end, not a to-do.
 
 **How this was obtained:** by capturing the official iOS app with Apple's
 PacketLogger (iOS trace), filtering to the bike's address, and reading the

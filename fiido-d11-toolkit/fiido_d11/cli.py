@@ -436,6 +436,13 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         print("\nInterrupted.")
         return 130
+    except Exception as err:  # noqa: BLE001 - friendly message for BLE failures
+        if "Bleak" in type(err).__name__ or "not found" in str(err).lower():
+            print(f"\nCould not reach the bike: {err}")
+            print("Is it powered on, nearby, and NOT connected to the Fiido app?")
+            print("Run 'python -m fiido_d11 scan' to confirm it's awake, then retry.")
+            return 1
+        raise
 
 
 if __name__ == "__main__":
