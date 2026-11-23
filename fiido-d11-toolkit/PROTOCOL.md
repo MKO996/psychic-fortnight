@@ -4,6 +4,45 @@
 reverse-engineering of *other* Fiido models. Treat it as a starting hypothesis
 and confirm each line against your own captured frames before trusting it.
 
+## Confirmed on a real D11 (firmware V40, macOS + Python 3.14 + bleak 3.1.0)
+
+Verified by running this toolkit's `scan` and `info` against an actual
+`Fiido_D11`, and by `monitor` capturing zero frames while idle.
+
+**GATT layout (differs from the C11 Pro / M1 Pro):**
+
+- Control service `00010203-0405-0607-0809-0a0b0c0dffe0`
+  - **notify**: handle `0x11`, characteristic `…ffe1` — the bike talks out here.
+  - **write / write-without-response**: handle `0x0f`, characteristic `…ffe2`
+    — the app sends in here.
+  - The C11 Pro / M1 Pro used a single handle `0x12` for both. The D11 splits
+    notify and write onto two handles. This is why the other models' handle
+    numbers must not be trusted blind.
+- Nordic Secure DFU service `0000fe59-0000-1000-8000-00805f9b34fb`
+  - buttonless DFU characteristic `8ec90003-f315-4f60-9fb8-838830daea50` at
+    handle `0x15` `[indicate, write]`.
+  - The BLE module is a Nordic nRF chip. Firmware (e.g. **V40**) is delivered
+    over BLE through this service — **not** over the handlebar USB port, which
+    is a 5 V charging output only (confirmed: a USB cable to a Mac enumerates no
+    device).
+  - **Never write to handle `0x15`.** A write here can jump the module into its
+    firmware bootloader. Listening (indicate) is harmless; writing is not.
+
+**Behaviour: the D11 is poll-based.**
+
+- Subscribing to the notify handle and sitting idle yields **no frames**, even
+  with the bike powered on and buttons pressed. Confirmed twice.
+- The host must send a request on the write handle (`0x0f`); the bike then
+  replies on the notify handle (`0x11`). The public "burst poll" description of
+  other models fits.
+- Consequence: passive `monitor` alone cannot learn this bike's protocol. You
+  need the exact poll bytes first.
+
+**Open question: the exact poll/request bytes for the D11 are not yet known.**
+Get them the safe way — capture the official Fiido app talking to the bike once
+(Android "Bluetooth HCI snoop log", or iOS/macOS PacketLogger) and read its real
+messages — rather than guessing bytes at the controller.
+
 ## Where this comes from
 
 The most complete public description of the Fiido app's BLE protocol is the
