@@ -78,9 +78,25 @@ nothing; this is what `poll` sends):
 | `46 64 FF 01 25 50 A9` | `46 64 AA 01 25 50 FC` |
 
 Set `0x01` here carried value `25 50`. The meaning of each register's bytes
-(which is speed, battery, assist level, the speed-limit setting) still has to be
-read off by correlating `poll` output with known readings — that is the next
-decode step, and it is read-only.
+still has to be read off by correlating `poll` output with known readings — that
+is the decode step, and it is read-only.
+
+**Register 0x21 field map (decoded on a real D11 by watching bytes change).**
+Offsets are into the reply payload (what `split_reply` returns):
+
+| Offset | Field | Confidence | How it was found |
+|---|---|---|---|
+| `[11]` | assist / PAS level (1–5) | **confirmed** | tracked `01→03→04→05→03` as the M button was pressed |
+| `[8]` | live motion sensor (speed/pedal) | likely | jumped while spinning, `00` at rest |
+| `[9]` | battery % | candidate | steady `0x32` (=50) at ~half charge |
+| `[3:5]` | slow 16-bit counter | unknown | `07cd→07ce`, ticks up slowly |
+
+Register `0x04` byte `[0]` = gear count (`05` for "Maximum Gear Mode: Five").
+Register `0x06` = ASCII id string (`"012345"`).
+
+Still to pin down: which byte is true wheel speed (needs the wheel actually
+rolling fast enough to show on the display), and which register/byte holds the
+25 km/h speed-limit setting that Debug Mode edits. Both are read-only to find.
 
 **How this was obtained:** by capturing the official iOS app with Apple's
 PacketLogger (iOS trace), filtering to the bike's address, and reading the

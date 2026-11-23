@@ -132,3 +132,21 @@ KNOWN_READ_FRAMES = [
     bytes.fromhex("466455040576"),  # register 0x04
     bytes.fromhex("46645508601f"),  # register 0x08
 ]
+
+
+# Field map for register 0x21 (the main state block), worked out by watching the
+# bytes change on a real D11 while pressing the assist button and spinning.
+# Offsets are into the reply payload (the bytes split_reply returns).
+#   [11] assist/PAS level 1..5      - CONFIRMED (tracked the M button)
+#   [8]  live motion sensor         - moves when wheel/cranks turn, 0 at rest
+#   [9]  battery %                   - candidate (0x32=50 at ~half charge)
+def decode_state(reg: int, payload: bytes) -> dict:
+    """Label the fields we have confirmed. Unconfirmed ones carry a '?'."""
+    labels: dict[str, object] = {}
+    if reg == 0x21 and len(payload) >= 12:
+        labels["assist"] = payload[11]       # 1..5, confirmed
+        labels["motion_raw"] = payload[8]    # speed/pedal signal
+        labels["battery?"] = payload[9]      # candidate
+    elif reg == 0x04 and len(payload) >= 1:
+        labels["gear_count"] = payload[0]    # 5 for "Maximum Gear Mode: Five"
+    return labels

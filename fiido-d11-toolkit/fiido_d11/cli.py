@@ -118,7 +118,11 @@ async def cmd_poll(args: argparse.Namespace) -> int:
                 return
             typ, reg, payload, ok = parsed
             flag = "ok " if ok else "BAD"
-            print(f"  type=0x{typ:02x} reg=0x{reg:02x} [{flag}]  {payload.hex(' ')}")
+            line = f"  type=0x{typ:02x} reg=0x{reg:02x} [{flag}]  {payload.hex(' ')}"
+            labels = frames.decode_state(reg, payload)
+            if labels:
+                line += "    " + "  ".join(f"{k}={v}" for k, v in labels.items())
+            print(line)
 
         await client.start_notify(notify_c, handle)
         print("Sending the app's own read requests (type 0x55, read-only). Ctrl+C to stop.\n")
