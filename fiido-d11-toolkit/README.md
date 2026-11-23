@@ -21,6 +21,7 @@ checksum) can send a frame back.
 | `scan` | find nearby bikes (a `Fiido_*` name) | no |
 | `info` | list every BLE service/characteristic with handles | no |
 | `monitor` | subscribe to notifications, print + log every frame | no |
+| `poll` | ask the bike for live state and decode it (assist, battery, …) | read-only\* |
 | `decode` | annotate a saved log with a conservative decoder | no |
 | `calibrate-crc` | work out the checksum from a real capture | no |
 | `send-raw` | send one raw hex frame | yes — gated |
@@ -28,6 +29,10 @@ checksum) can send a frame back.
 
 The write commands do nothing unless you pass `--unsafe-writes` and type a
 confirmation, and `set-speed-limit` additionally needs a calibrated checksum.
+
+\* `poll` transmits only the official app's own **read** requests (frame type
+`0x55`), which ask the bike to report its state and change no setting. The
+protocol it uses is confirmed on a real D11 — see [PROTOCOL.md](PROTOCOL.md).
 
 ## Install
 
