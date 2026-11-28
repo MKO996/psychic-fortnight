@@ -603,6 +603,28 @@ try {
     check('theme survives refresh', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark');
     await page.context().close();
   }
+
+  // 19. v1.0: installable on the home screen, works offline after first visit, shows its version
+  {
+    const page = await newPage();
+    await page.goto(URL);
+    const manifest = await page.evaluate(async () => { const l = document.querySelector('link[rel=manifest]'); const r = await fetch(l.href); return r.json(); });
+    check('manifest: name, standalone, icons', manifest.short_name === 'LEFT' && manifest.display === 'standalone' && manifest.icons.length >= 2);
+    check('iPhone home-screen icon linked', (await page.locator('link[rel=apple-touch-icon]').getAttribute('href')) === './icon-180.png');
+    await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+    await page.reload();
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 10000 });
+    await page.getByRole('button', { name: /Try the demo/ }).click();
+    await page.getByTestId('safe-today').waitFor();
+    await page.context().setOffline(true);
+    await page.reload();
+    await page.getByTestId('safe-today').waitFor({ timeout: 10000 });
+    check('offline: app reloads with no network and keeps the plan', (await text(page, '[data-testid=safe-today]')) === '£10.00');
+    await page.getByRole('button', { name: 'Settings' }).click();
+    check('settings shows version 1.0.0', (await page.getByTestId('app-version').innerText()) === 'LEFT version 1.0.0');
+    await page.context().setOffline(false);
+    await page.context().close();
+  }
 } catch (e) {
   check('script error', false, e.message.split('\n').slice(0, 3).join(' | '));
 } finally {

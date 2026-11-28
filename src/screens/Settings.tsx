@@ -74,6 +74,7 @@ export default function SettingsScreen() {
       <section className="card quiet">
         <h2>Your data</h2>
         <p>Everything is stored on this device only. LEFT doesn’t connect to a bank, doesn’t move money, and never keeps voice recordings.</p>
+        <p className="hint" data-testid="app-version">LEFT version {__APP_VERSION__}</p>
       </section>
       {confirmClear && (
         <Modal title="Clear your plan?" onClose={() => setConfirmClear(false)}>

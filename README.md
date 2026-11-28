@@ -1,4 +1,6 @@
-# LEFT: a voice-first payday planner (demo)
+# LEFT: a voice-first payday planner
+
+**Version 1.0.0** · see [CHANGELOG.md](CHANGELOG.md)
 
 LEFT tells someone with weekly or irregular pay **what's safe to spend today**, what's left for groceries, which bills and debt payments to cover, and how much can go to each savings goal. Plans live only on the device. LEFT never moves money and never connects to a bank.
 
@@ -15,6 +17,14 @@ Production build:
 npm run build && npm run preview   # http://localhost:4173 + Network URL
 ```
 
+### Put it on your iPhone home screen
+
+1. Open LEFT in **Safari** (from the hosted link, or your computer's Network address).
+2. Tap **Share** → **Add to Home Screen** → **Add**.
+3. LEFT opens full-screen with its coin icon.
+
+After the first visit over **https** (for example the hosted link), it also works with no internet. Over a plain `http://192.168…` address the app works, but offline mode can't switch on: browsers only allow it on https.
+
 ### Open it on a phone
 
 1. Put the phone and the computer on the same Wi-Fi.
@@ -28,7 +38,7 @@ Everything is bundled. After the page loads, planning and typing need no interne
 
 ```bash
 npm test             # 59 unit tests: calculation, parser, talk-to-plan
-npm run build && npm run e2e   # 136 browser checks in Chromium at 320–360px, all external requests blocked
+npm run build && npm run e2e   # 149 browser checks in Chromium at 320–360px, all external requests blocked
 ```
 
 The e2e script saves screenshots to `screenshots/`.
@@ -115,3 +125,7 @@ src/speech.ts      on-device-only speech recognition with crash guard
 src/screens/       Today, Talk, Plan, Goals, Setup wizard, Split, New period, Settings
 scripts/e2e.mjs    Playwright journey checks
 ```
+
+## Tech
+
+React 19 · Vite 8 · TypeScript 7 · Vitest 5 · Playwright (pre-installed) for the browser checks. `npm run icons` regenerates the PNG icons from `public/icon.svg`.

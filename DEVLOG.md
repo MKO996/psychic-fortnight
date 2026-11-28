@@ -252,3 +252,26 @@ What we did **not** copy: their look, the gems or streak currency, and any brand
 **Checked:** 59 unit tests and 145 browser checks. New checks: background is the cool grey (not cream); text contrast ≥ 4.5:1 for small text and ≥ 3:1 for big numbers, in both light and dark; dark theme switching, no sideways scroll, and surviving refresh.
 
 **Open question:** should the app follow the phone's light/dark setting by default? It's Light for now, so usability tests look the same for everyone.
+
+---
+
+## 8. Version 1.0: update, upgrade, ship (28 Nov 2026)
+
+**Ask:** "Update and upgrade and give the new version."
+
+**Updated (dependencies, all major versions)**
+- React 18 → **19**, Vite 5 → **8**, @vitejs/plugin-react 4 → **6**, Vitest 2 → **5**, TypeScript 5 → **7**.
+- No code changes were needed. The type check, 59 unit tests and every browser check passed on the new stack.
+- The build is now about 0.12s instead of about 1s. npm audit: 0 vulnerabilities.
+
+**Upgraded (app)**
+- **Installable:** `manifest.webmanifest`, an iPhone home-screen icon and Android icons (a happy coin on violet, generated from `public/icon.svg` by `scripts/icons.mjs`).
+- **Offline:** `public/sw.js` caches only the app's own files. Pages are network-first (to get updates), built files are cache-first. It runs only on https or localhost and never inside an embedded frame. Personal plans stay in localStorage, as before.
+- **Relative paths** (`base: './'`), so the built app works from any host or folder.
+- **Version** 1.0.0 is shown in Settings → Your data. Added `CHANGELOG.md`.
+
+**Why:** Mahdi tests on an iPhone. A home-screen app that opens offline feels like a real app, and testers don't need his laptop running.
+
+**Checked:** 59 unit tests and 149 browser checks. New: manifest, home-screen icon, version in Settings, and **reloading with the network switched off** still showing £10.00.
+
+**Note:** the JS bundle grew to about 109 kB gzipped (React 19 plus all features). That's fine for now; it could be split later if needed.

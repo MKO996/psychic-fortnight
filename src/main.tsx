@@ -8,3 +8,10 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
+
+// Offline support: only on secure pages (https or localhost) and not inside an embedded frame.
+if ('serviceWorker' in navigator && window.isSecureContext && window.top === window.self && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => { /* offline mode is optional */ });
+  });
+}
