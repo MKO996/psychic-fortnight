@@ -275,3 +275,5 @@ What we did **not** copy: their look, the gems or streak currency, and any brand
 **Checked:** 59 unit tests and 149 browser checks. New: manifest, home-screen icon, version in Settings, and **reloading with the network switched off** still showing £10.00.
 
 **Note:** the JS bundle grew to about 109 kB gzipped (React 19 plus all features). That's fine for now; it could be split later if needed.
+
+**Shipped:** `scripts/single-file.mjs` (`npm run single`) packs the build into one self-contained HTML page (about 393 KB, CSS and JS inlined, no outside requests). I published it as a hosted demo: https://claude.ai/artifact/9TuQpEcLe6c9wUYJsxSYR2. In that hosted frame, offline mode is off by design (service workers aren't allowed there); plans still save on the phone.

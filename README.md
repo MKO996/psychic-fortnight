@@ -2,6 +2,8 @@
 
 **Version 1.0.0** · see [CHANGELOG.md](CHANGELOG.md)
 
+**Hosted demo (no computer needed):** https://claude.ai/artifact/9TuQpEcLe6c9wUYJsxSYR2. It's private to the owner until shared from the page's Share menu. `npm run single` rebuilds it as one self-contained HTML file (`dist/left-single.html`).
+
 LEFT tells someone with weekly or irregular pay **what's safe to spend today**, what's left for groceries, which bills and debt payments to cover, and how much can go to each savings goal. Plans live only on the device. LEFT never moves money and never connects to a bank.
 
 ## Run it
